@@ -1,4 +1,4 @@
-# IIASA Climate Datasets API
+# Database Explorer for IIASA
 
 This repository contains a set of tools to allow users explore the different IIASA datasets shown in the link below: <br />
 https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html
