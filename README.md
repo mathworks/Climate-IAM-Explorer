@@ -22,7 +22,7 @@ The repository contains a MATLAB app that contains a visual interface to some li
 
     IIASADataExplorer
     
-![](doc/HowTo.gif)
+![](HowTo.gif)
 
 The app will load the NGFS scenario by default, but this can be changed at will.
 
