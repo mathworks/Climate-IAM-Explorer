@@ -1,0 +1,3 @@
+function LaunchIIASAExplorer
+IIASADataExplorer();
+end

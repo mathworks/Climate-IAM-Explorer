@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript">
+		
+        function setup(htmlComponent) {          
+    
+            var dom = document.getElementById("unme");
+            
+            dom.addEventListener("change", function(event) {
+                // Set the data value of the MATLAB component
+                htmlComponent.Data = dom.value;
+            });            
+        }
+    </script>
+</head>
+
+<body>
+        <input type="text" id="unme"></input>
+</body>
+
+</html>
