@@ -1,5 +1,7 @@
 # Database Explorer for IIASA
 
+[![View Database Explorer for IIASA on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/82550-database-explorer-for-iiasa)
+
 This repository contains a set of tools to allow users explore the different IIASA datasets shown in the link below: <br />
 https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html
 
