@@ -76,6 +76,30 @@ classdef IIASATimeseries
                          
         end
         
+        function [h,l] = bar(obj, varargin)
+            
+            if ~isempty(obj)
+                
+                h = bar([obj.Years], [obj.Values], varargin{:});
+                
+                axis(h(1).Parent,'tight');
+                xlabel(h(1).Parent,'Years');
+
+                units = unique([obj.Unit]);
+                if numel(units) == 1
+                    ylabel(h(1).Parent, "Units:   " + units);
+                else
+                    ylabel(h(1).Parent, "Multiple Units ");
+                end
+
+                str = igetLegend(obj);
+                l = legend(h(1).Parent,str,'Location','best','Interpreter','none');
+            else
+                h = [];
+            end
+            
+        end
+        
         function value = uniqueRegions(obj)
            value = unique([obj.Region]); 
         end
