@@ -44,7 +44,7 @@ classdef IIASATimeseries
             
         end
         
-        function h = plot(obj, varargin)
+        function [h,l] = plot(obj, varargin)
             
             if ~isempty(obj)
                 try 
@@ -69,12 +69,11 @@ classdef IIASATimeseries
                 end
 
                 str = igetLegend(obj);
-                legend(h(1).Parent,str,'Location','best','Interpreter','none')
+                l = legend(h(1).Parent,str,'Location','best','Interpreter','none');
             else
                 h = [];
             end
-             
-            
+                         
         end
         
         function value = uniqueRegions(obj)
