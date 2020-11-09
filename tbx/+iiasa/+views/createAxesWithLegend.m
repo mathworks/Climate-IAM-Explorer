@@ -12,7 +12,7 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
         function obj = createAxesWithLegend(varargin)
             
             obj.GridLayout = uigridlayout(varargin{:});
-            obj.GridLayout.ColumnWidth = {'1x','1x','1x','1x','1x'};
+            obj.GridLayout.ColumnWidth = {'1x','1x','1x','1x'};
             obj.GridLayout.RowHeight = {'1x', '20x'};
             obj.GridLayout.Padding = [0 0 0 0];
             
@@ -24,21 +24,22 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
             obj.UIAxes.XGrid = 'on';
             obj.UIAxes.YGrid = 'on';
             obj.UIAxes.Layout.Row = 2;
-            obj.UIAxes.Layout.Column = [1 5];
+            obj.UIAxes.Layout.Column = [1 4];
             
             obj.CheckBox = uicheckbox(obj.GridLayout);
             obj.CheckBox.ValueChangedFcn = @(s,e) obj.DisplayLegendCheckBoxValueChanged(e);
             obj.CheckBox.Text = 'Display Legend';
             obj.CheckBox.Layout.Row = 1;
-            obj.CheckBox.Layout.Column = 4;
+            obj.CheckBox.Layout.Column = 3;
             obj.CheckBox.Value = true;
             
             obj.LegendDropDown = uidropdown(obj.GridLayout);
             obj.LegendDropDown.Layout.Row = 1;
-            obj.LegendDropDown.Layout.Column = 5;
+            obj.LegendDropDown.Layout.Column = 4;
             obj.LegendDropDown.Items = ["best","bestoutside","north","south","east","west","northeast","northwest","southeast","southwest", ...
                 "northoutside","southoutside","eastoutside","westoutside","northeastoutside","northwestoutside","southeastoutside","southwestoutside"];
             obj.LegendDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(e);
+            
         end
                 
     end
