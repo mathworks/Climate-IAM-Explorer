@@ -52,13 +52,11 @@ The environment also allows you to change the underlying database:
     e.changeEnvironment('iamc15');
     disp(e)
 
-## Working with the IIASA Timeseries
-
-### Query datasets
+## Query datasets
 
 There are different options to query and select timeseries within the database:
 
-#### Both Model and Scenario are known
+### Both Model and Scenario are known
 
 In that case, one can request all the information from the database:
 
@@ -72,7 +70,7 @@ The data returned by the server is always stored in an array of IIASA Timeseries
 
     ts.plot('LineWidth');
 
-#### Query by variable / region:
+### Query by variable / region:
 
 If neither model or scenario are known, it is also possible to query the data using only the filter values, for example:
 
@@ -108,3 +106,30 @@ and with model/scenarios to find out exact runs:
 
     runs = e.filterRuns('model','GCAM','scenario','immediate','strict',false);
     e.RunList(ismember(e.RunList.run_id,runs),1:8)
+
+## Working with the IIASA Timeseries
+
+### Plotting Data
+
+A stack of IIASATimeseries objects can be plot in two main ways: line and bar plots. All plotting functions have two outputs: the array of graphics objects, and the legened.
+
+#### Line Plots
+
+The data in the object can be plotted as a set of line plots. The plot funciton accepts the exact same options as the standard plot function in MATLAB. For example:
+
+    figure;
+    ts(1:2).plot('LineWidth',2);
+
+#### Bar Plots
+
+Alternatively, the data in the object can also be plotted as a set of bar plots. The bar funciton accepts the exact same options as the standard bar function in MATLAB.
+
+    figure;
+    [~,l] = ts(1).bar();
+    l.Location = 'northeast';
+
+One useful utility consists in making a stack plot of several data. For example:
+
+    figure;
+    [h,l] = bar(ts(1:2),'stacked');
+    l.Location = 'northeast';
