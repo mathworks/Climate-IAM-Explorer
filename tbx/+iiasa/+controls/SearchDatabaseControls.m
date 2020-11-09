@@ -39,86 +39,65 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         function obj = SearchDatabaseControls(varargin)
             
-            g1 = uigridlayout([1 2], varargin{:},'ColumnWidth',{'1x', '0x', '1x'});
+            g1 = uigridlayout([1 2], varargin{:},'ColumnWidth',{'1x','1x','1x','0x','3x'}, 'RowHeight', {'1x', '2x', '0.2x'});
             obj.MainGridLayout = g1;
             
             % Set Search Database Tab axis
             SDAx = iiasa.views.createAxesWithLegend('Parent',g1);
-            SDAx.GridLayout.Layout.Row = 1;
-            SDAx.GridLayout.Layout.Column = 3;
+            SDAx.GridLayout.Layout.Row = [1 3];
+            SDAx.GridLayout.Layout.Column = 5;
             
             obj.SearchAxes = SDAx.UIAxes;
             
-            g2 = uigridlayout(g1);
-            g2.ColumnWidth = {'1x'};
-            g2.RowHeight = {'1x', '2x', '0.2x'};
-            g2.Padding = [0 0 0 0];
-            g2.Layout.Row = 1;
-            g2.Layout.Column = 1;
-            
-            obj.UITable = uitable(g2);
+            obj.UITable = uitable(g1);
             obj.UITable.ColumnName = {'Model'; 'Scenario'; 'Variable'; 'Region'; 'RunId'; 'Version'};
             obj.UITable.RowName = {};
             obj.UITable.Layout.Row = 2;
-            obj.UITable.Layout.Column = 1;
+            obj.UITable.Layout.Column = [1 3];
             obj.UITable.CellSelectionCallback = @(s,e) obj.plotSelected(e);
             
-            g3 = uigridlayout(g2);
-            g3.ColumnWidth = {'1x', '1x', '1x'};
-            g3.RowHeight = {'1x'};
-            g3.Padding = [0 0 0 0];
-            g3.Layout.Row = 3;
-            g3.Layout.Column = 1;
-            
             % Create LoadDataButton
-            obj.LoadDataButton = uibutton(g3, 'push');
-            obj.LoadDataButton.Layout.Row = 1;
+            obj.LoadDataButton = uibutton(g1, 'push');
+            obj.LoadDataButton.Layout.Row = 3;
             obj.LoadDataButton.Layout.Column = 1;
             obj.LoadDataButton.Text = 'Load Data';
             
             % Create SelectedtoWorkspaceButton
-            obj.SelectedtoWorkspaceButton = uibutton(g3, 'push');
-            obj.SelectedtoWorkspaceButton.Layout.Row = 1;
+            obj.SelectedtoWorkspaceButton = uibutton(g1, 'push');
+            obj.SelectedtoWorkspaceButton.Layout.Row = 3;
             obj.SelectedtoWorkspaceButton.Layout.Column = 2;
             obj.SelectedtoWorkspaceButton.Text = 'Selected to Workspace';
             
             % Create AlltoWorkspaceButton
-            obj.AlltoWorkspaceButton = uibutton(g3, 'push');
-            obj.AlltoWorkspaceButton.Layout.Row = 1;
+            obj.AlltoWorkspaceButton = uibutton(g1, 'push');
+            obj.AlltoWorkspaceButton.Layout.Row = 3;
             obj.AlltoWorkspaceButton.Layout.Column = 3;
             obj.AlltoWorkspaceButton.Text = 'All to Workspace';
             
             % Create InputvaluesseparatedbysemicolonsPanel
-            p1 = uipanel(g2);
+            p1 = uipanel(g1);
             p1.Title = 'Input values separated by semicolons';
             p1.Layout.Row = 1;
-            p1.Layout.Column = 1;
+            p1.Layout.Column = [1 3];
             
             % Create GridLayout26
             g4 = uigridlayout(p1);
-            g4.ColumnWidth = {'15x', '1x'};
-            g4.RowHeight = {'1x'};
+            g4.ColumnWidth = {'2x', '10x', '2x', '1x'};
+            g4.RowHeight = {'1x', '1x', '1x', '1x'};
             g4.Padding = [0 0 0 0];
-            
-            % Create GridLayout18
-            g5 = uigridlayout(g4);
-            g5.ColumnWidth = {'1x', '5x', '1x'};
-            g5.RowHeight = {'1x', '1x', '1x', '1x'};
-            g5.Layout.Row = 1;
-            g5.Layout.Column = 1;
-            obj.InputsGrid = g5;
+            obj.InputsGrid = g4;
             
             % Create Button
             obj.OpenTreeButton = uibutton(g4, 'push');
             obj.OpenTreeButton.ButtonPushedFcn = @(s,e) obj.ButtonPushed(e);
             obj.OpenTreeButton.FontSize = 20;
-            obj.OpenTreeButton.Layout.Row = 1;
-            obj.OpenTreeButton.Layout.Column = 2;
+            obj.OpenTreeButton.Layout.Row = [1 4];
+            obj.OpenTreeButton.Layout.Column = 4;
             obj.OpenTreeButton.Text = '<<';
             
             obj.TreeTab = iiasa.views.MetaDataTabs('Parent',g1);
-            obj.TreeTab.Layout.Row = 1;
-            obj.TreeTab.Layout.Column = 2;
+            obj.TreeTab.Layout.Row = [1 3];
+            obj.TreeTab.Layout.Column = 4;
             
         end
         
@@ -226,10 +205,10 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         function ButtonPushed(obj,event)
             if strcmp(event.Source.Text,"<<")
-                obj.MainGridLayout.ColumnWidth = {'1x','1x'};
+                obj.MainGridLayout.ColumnWidth = {'1x','1x','1x','3x','3x'};
                 event.Source.Text = ">";
             else
-                obj.MainGridLayout.ColumnWidth = {'1x','0x'};
+                obj.MainGridLayout.ColumnWidth = {'1x','1x','1x','0x','3x'};
                 event.Source.Text = "<<";
             end
         end
