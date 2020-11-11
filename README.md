@@ -8,7 +8,7 @@ This repository contains a set of tools to allow users explore the [different da
 </br>
 [NGFS Climate Scenarios Database](https://www.ngfs.net/sites/default/files/ngfs_climate_scenario_technical_documentation_final.pdf)
 
-Please note that this tool is complementary to the IIASA Scenario Explorer which one can use to get the data directly into MATLAB.
+Please note that this tool is complementary to the more complete (IIASA Scenario Explorer](https://data.ene.iiasa.ac.at/auth/#/) and the main purpose is to allow getting the data directly into MATLAB.
 
 The repository mostly consists of two separate tools. A MATLAB API to the RESTful interface form IIASA below: <br />
 https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804 
