@@ -2,13 +2,13 @@
 
 [![View Database Explorer for IIASA on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/82550-database-explorer-for-iiasa)
 
-This repository contains a set of tools to allow users explore the different [IIASA datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html). To understand more about how the different scenarios are built, we would recommed visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
+This repository contains a set of tools to allow users explore the [different datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html) hosted by the IIASA Energy program (ENE). These databases contain a series models that predict the evolution magnitudes including CO2, Energy Prices, and Population among others. Each prediction is based in different climate scenarios established by the model. To understand more about how the different scenarios are built, we recommend visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
 </br>
 [Huppmann et al., Nature Climate Change (2018)](https://www.nature.com/articles/s41558-018-0317-4)
 </br>
 [NGFS Climate Scenarios Database](https://www.ngfs.net/sites/default/files/ngfs_climate_scenario_technical_documentation_final.pdf)
 
-Please note that this tool is complementary to the IIASA own Scenario Explorer which one can use to get the data directly into MATLAB.
+Please note that this tool is complementary to the IIASA Scenario Explorer which one can use to get the data directly into MATLAB.
 
 The repository mostly consists of two separate tools. A MATLAB API to the RESTful interface form IIASA below: <br />
 https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804 
@@ -22,7 +22,7 @@ and a MATLAB App that provides a graphical interface to that same API.
 
 ## Using the data explorer App
 
-The repository contains a MATLAB app that contains a visual interface to some limited access to the API. For a full "dataset" availability using the programatic way is probably a better alternative. To Launch the app, you only need to run the command below directly into MATLAB.
+The repository contains a MATLAB app that contains a visual interface to some limited access to the API. For a full "dataset" availability using the programmatic way is probably a better alternative. To Launch the app, you only need to run the command below directly into MATLAB.
 
     IIASADataExplorer
     
@@ -32,7 +32,7 @@ The app will load the NGFS scenario by default, but this can be changed at will.
 
 ## Create a Connection
 
-Programatically, the connection to the IIASA database can be created with a default selected scenario or completely empty. To connecto to a specific scenario, please select the product name (e.g. "IXSE_NGFS"), the scheme (e.g. "IXMP Scenario Explorer SPA UI"), the environment (e.g. "ngfs"), or the product name (e.g. "NGFS Scenario Explorer"). For example:
+Programatically, the connection to the IIASA database can be created with a default selected scenario or completely empty. To connect to a specific scenario, please select the product name (e.g. "IXSE_NGFS"), the scheme (e.g. "IXMP Scenario Explorer SPA UI"), the environment (e.g. "ngfs"), or the product name (e.g. "NGFS Scenario Explorer"). For example:
 
     c = iiasa.IIASAConnection('ngfs');
 
@@ -42,7 +42,7 @@ At any point in time, a user can view all the available environments in the data
 
 ## Exploring the databases
 
-Although the Connection class allows you to perform various REST calls, the best way to explore a database is to use the enviornment class:
+Although the Connection class allows you to perform various REST calls, the best way to explore a database is to use the environment class:
 
     e = iiasa.IIASAEnvironment(c)
 
@@ -66,7 +66,7 @@ In that case, one can request all the information from the database:
 
     data = e.getTimeSeries('model',"GCAM 5.2",'scenario','Current policies (Hot house world, Rep)')
 
-However, this query can be quite length as there are many different variables and regions that will be requested. Alternatively, the data can be fildtered down by "regions" and "variables as:
+However, this query can be quite length as there are many different variables and regions that will be requested. Alternatively, the data can be filtered down by "regions" and "variables as:
 
     ts = e.getTimeSeries('model','AIM/CGE 2.0','scenario','ADVANCE_2020_1.5C-2100','regions','World','Variables','Emissions|CO2')
 
@@ -115,11 +115,11 @@ and with model/scenarios to find out exact runs:
 
 ### Plotting Data
 
-A stack of IIASATimeseries objects can be plot in two main ways: line and bar plots. All plotting functions have two outputs: the array of graphics objects, and the legened.
+A stack of IIASATimeseries objects can be plot in two main ways: line and bar plots. All plotting functions have two outputs: the array of graphics objects, and the legend.
 
 #### Line Plots
 
-The data in the object can be plotted as a set of line plots. The plot funciton accepts the exact same options as the standard plot function in MATLAB. For example:
+The data in the object can be plotted as a set of line plots. The plot function accepts the exact same options as the standard plot function in MATLAB. For example:
 
     figure;
     ts(1:2).plot('LineWidth',2);
