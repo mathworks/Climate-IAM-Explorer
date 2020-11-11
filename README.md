@@ -2,14 +2,14 @@
 
 [![View Database Explorer for IIASA on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/82550-database-explorer-for-iiasa)
 
-This repository contains a set of tools to allow users explore the different IIASA datasets shown in the link below: <br />
-https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html
+This repository contains a set of tools to allow users explore the different [IIASA datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html). To understand more about how the different scenarios are built, we would recommed visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
+[Huppmann et al., Nature Climate Change (2018)](https://www.nature.com/articles/s41558-018-0317-4)
+[NGFS Climate Scenarios Database](https://www.ngfs.net/sites/default/files/ngfs_climate_scenario_technical_documentation_final.pdf)
 
 Please note that this tool is complementary to the IIASA own Scenario Explorer which one can use to get the data directly into MATLAB.
 
 The repository mostly consists of two separate tools. A MATLAB API to the RESTful interface form IIASA below: <br />
-https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804
-
+https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804 
 and a MATLAB App that provides a graphical interface to that same API.
 
 # Table of Contents
