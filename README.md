@@ -2,9 +2,9 @@
 
 [![View Database Explorer for IIASA on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/82550-database-explorer-for-iiasa)
 
-| **CI Platform** | **Badges** | **Badge Help** |
-|:----------------|:-----------|:---------------|
-| GitHub Actions | [![MATLAB](https://github.com/ebenetce/matlab-ci-examples/workflows/MATLAB/badge.svg)](https://github.com/asifouna/matlab-ci-examples/actions?query=workflow%3AMATLAB) | [GitHub Actions documentation for setting up badges](https://docs.github.com/en/actions/managing-workflow-runs/adding-a-workflow-status-badge) |
+| **CI Platform** | **Badges** |
+|:----------------|:-----------|
+| GitHub Actions | [![MATLAB](https://github.com/mathworks/Database-Explorer-for-IIASA/workflows/MATLAB/badge.svg)](https://github.com/mathworks/Database-Explorer-for-IIASA/actions?query=workflow%3AMATLAB) |
 
 This repository contains a set of tools to allow users explore the [different datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html) hosted by the IIASA Energy program (ENE). These databases contain a series models that predict the evolution magnitudes including CO2, Energy Prices, and Population among others. Each prediction is based in different climate scenarios established by the model. To understand more about how the different scenarios are built, we recommend visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
 </br>
