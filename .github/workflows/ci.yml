@@ -33,5 +33,3 @@ jobs:
         uses: matlab-actions/run-tests@v0
         with:
           source-folder: main
-          test-results-junit: test-results/results.xml
-          echo test, and deploy your project.
