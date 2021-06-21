@@ -22,13 +22,13 @@ and a MATLAB App that provides a graphical interface to that same API.
 1. [Using the data explorer App](#using-the-data-explorer-app)
 2. [Create a Connection](#creata-a-connection)
 3. [Exploring the databases](#exploring-the-databases)
-4. [Working with the IIASA Timeseries](#working-with-the-iiasa-timeseries)
+4. [Working with the IAM Timeseries](#working-with-the-iiasa-timeseries)
 
 ## Using the data explorer App
 
 The repository contains a MATLAB app that contains a visual interface to some limited access to the API. For a full "dataset" availability using the programmatic way is probably a better alternative. To Launch the app, you only need to run the command below directly into MATLAB.
 
-    IIASADataExplorer
+    IAMDataExplorer
     
 ![](HowTo.gif)
 
