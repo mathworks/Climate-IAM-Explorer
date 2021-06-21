@@ -7,7 +7,7 @@ classdef IAMWorkspace < matlab.mixin.SetGet
     end
     
     properties (SetAccess = private)
-        Data (:,1) iam.IIASATimeseries
+        Data (:,1) iam.IAMTimeseries
     end
     
     properties (Dependent, SetAccess = private)

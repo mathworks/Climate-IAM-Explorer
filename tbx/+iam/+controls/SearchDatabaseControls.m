@@ -20,7 +20,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
     
     properties (SetAccess = private)
         
-        TableData (:,1) iam.IIASATimeseries
+        TableData (:,1) iam.IAMTimeseries
         OpenTreeButton matlab.ui.control.Button
         
     end
@@ -151,8 +151,8 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         function loadData(obj, ts)
             
-            if ~isa(ts, 'iam.IIASATimeseries')
-                error('SearchDatabaseControls:InvalidDataType','Data must be a iam.IIASATimeseries object')
+            if ~isa(ts, 'iam.IAMTimeseries')
+                error('SearchDatabaseControls:InvalidDataType','Data must be a iam.IAMTimeseries object')
             end
             
             obj.TableData = ts;
