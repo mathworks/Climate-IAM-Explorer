@@ -38,7 +38,7 @@ The app will load the NGFS scenario by default, but this can be changed at will.
 
 Programatically, the connection to the IIASA database can be created with a default selected scenario or completely empty. To connect to a specific scenario, please select the product name (e.g. "IXSE_NGFS"), the scheme (e.g. "IXMP Scenario Explorer SPA UI"), the environment (e.g. "ngfs"), or the product name (e.g. "NGFS Scenario Explorer"). For example:
 
-    c = iiasa.IIASAConnection('ngfs');
+    c = iam.IIASAConnection('ngfs');
 
 At any point in time, a user can view all the available environments in the database:
 
@@ -48,7 +48,7 @@ At any point in time, a user can view all the available environments in the data
 
 Although the Connection class allows you to perform various REST calls, the best way to explore a database is to use the environment class:
 
-    e = iiasa.IIASAEnvironment(c)
+    e = iam.IAMEnvironment(c)
 
 This object loads by default all the available Models, Scenarios, Variables, Regions and Runs in the database (not the actual timeseries). For example, you can view all the models by running:
 
@@ -74,7 +74,7 @@ However, this query can be quite length as there are many different variables an
 
     ts = e.getTimeSeries('model','AIM/CGE 2.0','scenario','ADVANCE_2020_1.5C-2100','regions','World','Variables','Emissions|CO2')
 
-The data returned by the server is always stored in an array of IIASA Timeseries objects. Each of these objects will allow you to automatically plot the data by running:
+The data returned by the server is always stored in an array of IAM Timeseries objects. Each of these objects will allow you to automatically plot the data by running:
 
     ts.plot('LineWidth');
 
@@ -115,11 +115,11 @@ and with model/scenarios to find out exact runs:
     runs = e.filterRuns('model','GCAM','scenario','immediate','strict',false);
     e.RunList(ismember(e.RunList.run_id,runs),1:8)
 
-## Working with the IIASA Timeseries
+## Working with the IAM Timeseries
 
 ### Plotting Data
 
-A stack of IIASATimeseries objects can be plot in two main ways: line and bar plots. All plotting functions have two outputs: the array of graphics objects, and the legend.
+A stack of IAMTimeseries objects can be plot in two main ways: line and bar plots. All plotting functions have two outputs: the array of graphics objects, and the legend.
 
 #### Line Plots
 
