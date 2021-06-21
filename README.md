@@ -1,4 +1,4 @@
-# Database Explorer for Integrated Assessment Models
+# Integrated Assessment Models Explorer
 
 [![View Database Explorer for IIASA on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/82550-database-explorer-for-iiasa)
 
