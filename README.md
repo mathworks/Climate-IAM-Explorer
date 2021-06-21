@@ -14,6 +14,10 @@ This repository contains a set of tools to allow users explore the [different da
 
 Please note that this tool is complementary to the more complete (IIASA Scenario Explorer](https://data.ene.iiasa.ac.at/auth/#/) and the main purpose is to allow getting the data directly into MATLAB.
 
+</br>
+We’d like to thank Stefano Battiston, Antoine Mandel and Irene Monasterolo for their help in developing and validating this example. The three scholars are amongst the authors of the referenced papers, rank among the leaders in global climate impact research, and are pioneers in the assessment of climate-related financial risks. They are also founders of CLIMAFIN, a start-up that provides solutions climate-related financial risk for corporate clients.
+</br>
+
 The repository mostly consists of two separate tools. A MATLAB API to the RESTful interface form IIASA below: <br />
 https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804 
 and a MATLAB App that provides a graphical interface to that same API.
