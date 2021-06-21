@@ -43,8 +43,8 @@ classdef IAMWorkspace < matlab.mixin.SetGet
         
         function addData(obj, data)
             
-            if ~isa(data, 'iam.IIASATimeseries')
-                error('data must be a IIASATimeseries object')
+            if ~isa(data, 'iam.IAMTimeseries')
+                error('data must be a IAMTimeseries object')
             end
             
             idx = ismember(obj.Data, data);

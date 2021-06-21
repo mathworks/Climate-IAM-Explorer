@@ -2,8 +2,8 @@ function idx = ismember(obj, ts)
 
 % Copyright 2020-2021 The MathWorks, Inc.
 
-if ~isa(ts, 'iam.IIASATimeseries')
-    error('ts must be a IIASATimeseries object')
+if ~isa(ts, 'iam.IAMTimeseries')
+    error('ts must be a IAMTimeseries object')
 end
 
 idx = false(numel(ts), 1);

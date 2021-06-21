@@ -158,7 +158,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
                 end
             end
             
-            data = iam.IIASATimeseries(data);
+            data = iam.IAMTimeseries(data);
             
             function value = parseString(str)
                 

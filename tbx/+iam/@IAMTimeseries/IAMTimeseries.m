@@ -20,7 +20,7 @@ classdef IAMTimeseries
     
     methods
         
-        function obj = IIASATimeseries(Data)
+        function obj = IAMTimeseries(Data)
             
             if nargin > 0 && ~isempty(Data)
                 
