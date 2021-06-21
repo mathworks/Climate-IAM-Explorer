@@ -62,7 +62,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
         
     end
     
-    methods (Access = ?iam.IIASAEnvironment)
+    methods (Access = ?iam.IAMEnvironment)
         
         function value = getMetadata(obj)
             
