@@ -7,7 +7,7 @@
     <param.summary>Database Explorer for IIASA</param.summary>
     <param.description>This toolbox includes a set of functions to access the various datasets hosted by IIASA. There is also a MATLAB App to facilitate the visualization of these datasets.</param.description>
     <param.screenshot />
-    <param.version>1.0</param.version>
+    <param.version>1.0.1</param.version>
     <param.output>${PROJECT_ROOT}\Database Explorer for IIASA.mltbx</param.output>
     <param.products.name>
       <item>MATLAB</item>
@@ -51,7 +51,6 @@
     <param.additional.sw.linux.url />
     <unset>
       <param.screenshot />
-      <param.version />
       <param.output />
       <param.platforms />
       <param.exclude.filters />
