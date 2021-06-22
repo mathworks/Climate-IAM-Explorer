@@ -45,7 +45,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
             
             % Constructor
             if obj.Authorize
-                obj.getAllEnvironments(p.Results.env); 
+                obj.getAllEnvironments(p.Results.env);
             else
                 return
             end
@@ -111,7 +111,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
             addParameter(p, 'timeslices', '', func)
             
             parse(p, varargin{:});
-
+            
             runNum = strjoin(string(num2str(p.Results.runs)),',');
             
             variable   = parseString(p.Results.variables);
@@ -201,7 +201,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
         end
         
         function refs = getRefs(obj)
-
+            
             
             url = obj.Config.baseUrl + "/runs/refs";
             refs = obj.getRequest(url);
@@ -276,11 +276,11 @@ classdef IIASAConnection < matlab.mixin.SetGet
     methods (Access = private)
         
         function authenticateConnection(obj, username, password)
-
+            
             if isempty(username)
                 obj.AuthToken = webread(strjoin([obj.Auth_Url, "anonym"],"/"));
                 obj.Authorize = true ;
-            elseif nargin == 3             
+            elseif nargin == 3
                 input = struct('username',username,'password',password) ;
                 url = strjoin([obj.Auth_Url, "login"],"/");
                 try
@@ -289,9 +289,9 @@ classdef IIASAConnection < matlab.mixin.SetGet
                 catch
                     obj.Authorize = false ;
                     error("IIASAConnection:authenticateConnection:InvalidCredentials", ...
-                    "Authentication failed, probably due to invalid credentials") ;
+                        "Authentication failed, probably due to invalid credentials") ;
                 end
-
+                
             end
             
         end
@@ -362,14 +362,31 @@ classdef IIASAConnection < matlab.mixin.SetGet
             
         end
         
-        function response = postRequest(obj, url, input)            
+        function response = postRequest(obj, url, input)
             
-            headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; ...
-                'Accept', 'application/json'; ...
-                'Content-Type', 'application/json'};
-            options = weboptions('HeaderFields', headerFields, 'Timeout', 40);
+            import matlab.net.*;
+            import matlab.net.http.*;
+            import matlab.net.http.field.*;
+            import matlab.net.http.io.*;
             
-            response = webwrite(url, input, options);
+            mt = MediaType('application/json');
+            
+            mb = MessageBody();
+            mb.Payload= unicode2native(input, 'UTF-8');
+            hf1 = ContentTypeField(mt);
+            hf2 = HeaderField('Authorization',['Bearer ', obj.AuthToken]);
+            hf3 = AcceptField(mt);
+            
+            rm = RequestMessage('post', [hf1, hf2, hf3]);
+            rm.Body = mb;
+            
+            rsp = rm.send(url);
+            
+            if rsp.StatusCode == "OK"
+                response = rsp.Body.Data;
+            else
+                error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
+            end
             
         end
         
