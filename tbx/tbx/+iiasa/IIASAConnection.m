@@ -364,29 +364,12 @@ classdef IIASAConnection < matlab.mixin.SetGet
         
         function response = postRequest(obj, url, input)            
             
-            import matlab.net.*;
-            import matlab.net.http.*;
-            import matlab.net.http.field.*;
-            import matlab.net.http.io.*;
+            headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; ...
+                'Accept', 'application/json'; ...
+                'Content-Type', 'application/json'};
+            options = weboptions('HeaderFields', headerFields, 'Timeout', 40);
             
-            mt = MediaType('application/json');
-            
-            mb = MessageBody();
-            mb.Payload= unicode2native(input, 'UTF-8');
-            hf1 = ContentTypeField(mt);
-            hf2 = HeaderField('Authorization',['Bearer ', obj.AuthToken]);
-            hf3 = AcceptField(mt);
-            
-            rm = RequestMessage('post', [hf1, hf2, hf3]);
-            rm.Body = mb;
-            
-            rsp = rm.send(url);
-            
-            if rsp.StatusCode == "OK"
-                response = rsp.Body.Data;
-            else
-                error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
-            end
+            response = webwrite(url, input, options);
             
         end
         
