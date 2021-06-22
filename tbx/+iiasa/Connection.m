@@ -1,4 +1,4 @@
-classdef IIASAConnection < matlab.mixin.SetGet
+classdef Connection < matlab.mixin.SetGet
     
     % Copyright 2020-2021 The MathWorks, Inc.
     
@@ -28,7 +28,7 @@ classdef IIASAConnection < matlab.mixin.SetGet
     
     methods
         
-        function obj = IIASAConnection(varargin)
+        function obj = Connection(varargin)
             
             p = inputParser();
             
@@ -148,7 +148,8 @@ classdef IIASAConnection < matlab.mixin.SetGet
                         data(num).runId = string(tb.runId(i));
                         data(num).version = string(tb.version(i));
                         data(num).years = tb.year(current:i);
-                        data(num).values = tb.value(current:i);
+                        data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
+                            'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', data(num).variable);
                         
                         num = num + 1;
                         current = i + 1;

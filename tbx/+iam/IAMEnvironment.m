@@ -3,7 +3,7 @@ classdef IAMEnvironment < matlab.mixin.SetGet
     % Copyright 2020-2021 The MathWorks, Inc.
     
     properties (Hidden)
-        Connection (1,1) iiasa.IIASAConnection
+        Connection (1,1) iiasa.Connection
     end
     
     properties (Dependent, SetAccess = private)

@@ -11,7 +11,7 @@ classdef IAMTimeseries
         RunId    (1,1) double
         Version  (1,1) double
         Years    (:,1) double
-        Values   (:,1) double
+        Values   (:,:) timetable
     end
     
     methods
@@ -47,8 +47,9 @@ classdef IAMTimeseries
         function [h,l] = plot(obj, varargin)
             
             if ~isempty(obj)
+                allVars = synchronize(obj.Values);
                 try 
-                    h = plot([obj.Years], [obj.Values], varargin{:});
+                    h = plot(allVars.Year, allVars{:,:}, varargin{:});
                 catch
                     
                     h = plot(obj(1).Years, obj(1).Values, varargin{:});
@@ -79,8 +80,8 @@ classdef IAMTimeseries
         function [h,l] = bar(obj, varargin)
             
             if ~isempty(obj)
-                
-                h = bar([obj.Years], [obj.Values], varargin{:});
+                allVars = synchronize(obj.Values);
+                h = bar(allVars.Year, allVars{:,:}, varargin{:});
                 
                 axis(h(1).Parent,'tight');
                 xlabel(h(1).Parent,'Years');
