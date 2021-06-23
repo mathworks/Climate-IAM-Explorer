@@ -26,7 +26,7 @@ classdef IAMTimeseries
                 
                 m = size(Data,1);
                 n = size(Data,2);
-                obj(max(m,n),1) = obj;
+                obj = repelem(obj,m,n);
                 
                 for i = 1 : numel(Data)
                     data = Data(i);
@@ -35,11 +35,10 @@ classdef IAMTimeseries
                     obj(i).Variable = data.variable;
                     obj(i).Region = data.region;
                     obj(i).Unit = data.unit;
-                    obj(i).RunId = data.runId;
-                    obj(i).Version = data.version;
                     obj(i).Years = data.years;
                     obj(i).Values = data.values;
                 end
+                
             end
             
         end
