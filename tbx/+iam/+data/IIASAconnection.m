@@ -1,4 +1,4 @@
-classdef Connection < matlab.mixin.SetGet
+classdef IIASAconnection < matlab.mixin.SetGet
     
     % Copyright 2020-2021 The MathWorks, Inc.
     
@@ -28,7 +28,7 @@ classdef Connection < matlab.mixin.SetGet
     
     methods
         
-        function obj = Connection(varargin)
+        function obj = IIASAconnection(varargin)
             
             p = inputParser();
             
