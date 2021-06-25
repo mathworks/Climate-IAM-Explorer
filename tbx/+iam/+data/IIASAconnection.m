@@ -1,4 +1,4 @@
-classdef IIASAconnection < matlab.mixin.SetGet
+classdef IIASAconnection < iam.data.Connection
     
     % Copyright 2020-2021 The MathWorks, Inc.
     
@@ -62,7 +62,7 @@ classdef IIASAconnection < matlab.mixin.SetGet
         
     end
     
-    methods (Access = ?iam.IAMEnvironment)
+    methods %(Access = ?iam.IAMEnvironment)
         
         function value = getMetadata(obj)
             
@@ -206,6 +206,22 @@ classdef IIASAconnection < matlab.mixin.SetGet
             
             url = obj.Config.baseUrl + "/runs/refs";
             refs = obj.getRequest(url);
+            
+            if ~isempty(refs)
+                
+                models = [refs.models{:}]';
+                refs.models = toString(cell2table(models(2:end,:),'VariableNames',models(1,:)));
+                
+                scenarios = [refs.scenarios{:}]';
+                refs.scenarios = toString(cell2table(scenarios(2:end,:),'VariableNames',scenarios(1,:)));
+                
+                variables = [refs.variables{:}]';
+                refs.variables = toString(cell2table(variables(2:end,:),'VariableNames',variables(1,:)));
+                
+                regions = [refs.regions{:}]';
+                refs.regions = toString(cell2table(regions(2:end,:),'VariableNames',regions(1,:)));
+                
+            end
             
         end
         
@@ -403,4 +419,16 @@ classdef IIASAconnection < matlab.mixin.SetGet
         
     end
     
+end
+
+function tb = toString(tb)
+% Transform cell arrays to string arrays for conveinence.
+vars = tb.Properties.VariableNames;
+for i = vars
+    field = i{1};
+    if iscellstr(tb.(field)) %#ok<ISCLSTR>
+        tb.(field) = string(tb.(field));
+    end
+end
+
 end

@@ -165,21 +165,26 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             
             refs = obj.Connection.getRefs();
             
-            if ~isempty(refs)
-                
-                models = [refs.models{:}]';
-                obj.Models = toString(cell2table(models(2:end,:),'VariableNames',models(1,:)));
-                
-                scenarios = [refs.scenarios{:}]';
-                obj.Scenarios = toString(cell2table(scenarios(2:end,:),'VariableNames',scenarios(1,:)));
-                
-                variables = [refs.variables{:}]';
-                obj.Variables = toString(cell2table(variables(2:end,:),'VariableNames',variables(1,:)));
-                
-                regions = [refs.regions{:}]';
-                obj.Regions = toString(cell2table(regions(2:end,:),'VariableNames',regions(1,:)));
-                
-            end
+            obj.Models    = refs.models;
+            obj.Scenarios = refs.scenarios;
+            obj.Variables = refs.variables;
+            obj.Regions   = refs.regions;
+            
+%             if ~isempty(refs)
+%                 
+%                 models = [refs.models{:}]';
+%                 obj.Models = toString(cell2table(models(2:end,:),'VariableNames',models(1,:)));
+%                 
+%                 scenarios = [refs.scenarios{:}]';
+%                 obj.Scenarios = toString(cell2table(scenarios(2:end,:),'VariableNames',scenarios(1,:)));
+%                 
+%                 variables = [refs.variables{:}]';
+%                 obj.Variables = toString(cell2table(variables(2:end,:),'VariableNames',variables(1,:)));
+%                 
+%                 regions = [refs.regions{:}]';
+%                 obj.Regions = toString(cell2table(regions(2:end,:),'VariableNames',regions(1,:)));
+%                 
+%             end
             
 %             metadata = obj.Connection.getMetadata();
             

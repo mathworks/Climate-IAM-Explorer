@@ -1,23 +1,25 @@
-classdef LIMITSconnection < matlab.mixin.SetGet
+classdef LIMITSconnection < iam.data.Connection
     
     % Copyright 2021-2022 The MathWorks, Inc.
     
+    properties (Dependent)
+        Environment
+    end
+    
     properties (SetAccess = private)
-        ExcelFile (1,1) string
+        File (1,1) string
+        TimeseriesList
     end
     
-    properties (Constant)
-        Environment = "LIMITS"
-    end
-    
-    properties
-        TimeseriesList (:,6) table
-    end
-    
-    properties (Constant)
+    properties (SetAccess = private)
         Config struct = struct( ...
             'name', "LIMITS", 'env', "limits",'productName', "LIMITS", ...
             'database', "LIMITS", "welcome", "Welcome to the LIMITS Database");
+    end
+    
+    properties (Constant, Access = private)
+       YEARS = [2005:5:2050,2060:10:2100]; 
+       ENVIRONMENT = "LIMITS";
     end
     
     properties
@@ -29,8 +31,11 @@ classdef LIMITSconnection < matlab.mixin.SetGet
         function obj = LIMITSconnection(excelFile)
             
             if isfile(excelFile)
-                obj.ExcelFile = excelFile;
-                opts = detectImportOptions(obj.ExcelFile, 'TextType', 'string', 'ReadVariableNames', true, 'Range', 'A:E');
+                obj.File = excelFile;
+                
+%                 obj.ImportOptions = delimitedTextImportOptions("NumVariables", 20);
+                
+                opts = detectImportOptions(obj.File, 'TextType', 'string', 'ReadVariableNames', true, 'Range', 'A:E');
                 
                 rl = readtable(excelFile, opts);
                 rl.run_id = ones(height(rl), 1);
@@ -45,7 +50,7 @@ classdef LIMITSconnection < matlab.mixin.SetGet
                 end
                 obj.TimeseriesList = rl;
                 obj.TimeseriesList.Properties.VariableNames = {'model','scenario','region','variable','unit','run_id'};
-                obj.getAllEnvironments();
+                % I probably want a caching option here.
             else
                 error('iam:data:LIMITSconnection:ExcelDoesNotExist', ...
                     'Unable to find a valid Excel file')
@@ -53,65 +58,14 @@ classdef LIMITSconnection < matlab.mixin.SetGet
             
         end
         
-    end
-    
-    methods %(Access = ?iam.IAMEnvironment)
-        
-        function value = getEnvironmentConfig(obj)
-            value = obj.Config;
-        end
-        
-        function params = getRunDetails(obj, runId)
-            
-            params = obj.getAllVariables();
-            
-        end
-        
-        function value = getEnvironments(obj)
-            value = obj.AllEnvironments;
-        end
-        
-        function getAllEnvironments(obj)
-            
-            productName = obj.Config.productName;
-            env = obj.Config.env;
-            uiUrl = obj.ExcelFile;
-            name = obj.Config.name;
-            scheme = "";
-            
-            tb = table(productName, env, uiUrl, name, scheme);
-            
-            obj.AllEnvironments = tb;
-            
-        end
-        
-        function data = getCurrentData(obj, varargin)
-            data = obj.getBulkData('models',obj.Model, 'scenarios', obj.Scenario, varargin{:});
-        end
-        
-        function ref = getRefs(obj)
-            
-            refsID = cell(2,1);
-            refsID{1,1} = 'ID';
-            refsID{2,1} = 'Name';
-            refsID = {refsID};
-            ref.models = [refsID; arrayfun(@(a,b) {a;b}, 1:length(obj.getAllModels), obj.getAllModels', 'UniformOutput', false)'];
-            
-            ref.scenarios = [refsID; arrayfun(@(a,b) {a;b}, 1:length(obj.getAllScenarios), obj.getAllScenarios', 'UniformOutput', false)'];
-            vars = unique(obj.TimeseriesList.variable);
-            ref.variables = [refsID; arrayfun(@(a,b) {a;b}, 1:length(vars), vars', 'UniformOutput', false)'];
-            reg = unique(obj.TimeseriesList.region);
-            ref.regions = [refsID; arrayfun(@(a,b) {a;b}, 1:length(reg), reg', 'UniformOutput', false)'];
-        end
-        
-        function data = getBulkData(obj, varargin)
+        function ts = getBulkData(obj, varargin)
             
             p = inputParser();
             
             func = @(x) isstring(x) | ischar(x);
-            addParameter(p, 'runs', [], @isnumeric)
             addParameter(p, 'models', '', func)
-            addParameter(p, 'scenarios', '', func)
+            addParameter(p, 'scenarios', '', func)            
+            addParameter(p, 'runs', [], @isnumeric)
             addParameter(p, 'variables', '', func)
             addParameter(p, 'regions', '', func)
             addParameter(p, 'years', '', func)
@@ -141,12 +95,34 @@ classdef LIMITSconnection < matlab.mixin.SetGet
                 idx = idx & ismember(obj.TimeseriesList.region, p.Results.regions);
             end
             
-            if nnz(idx) ~= 0
+            if nnz(idx) ~= 0              
+                % Set up the Import Options and import the data
+                opts = delimitedTextImportOptions("NumVariables", 20);
                 
-                years = readmatrix('LIMITSPUBLIC_2014-10-13.csv', 'Range', 'F1:AB1');
+                % Specify range and delimiter
+                DataLines = find(idx)+1;
+                opts.DataLines = [DataLines, DataLines];
+                opts.Delimiter = ",";
                 
-                AllValues = readmatrix(obj.ExcelFile, 'Range', 'F2');
-                tb = obj.TimeseriesList(idx, :);
+                % Specify column names and types
+                opts.VariableNames = ["model", "scenario", "region", "variable", "unit", "VarName6", "VarName7", "VarName8", "VarName9", "VarName10", "VarName11", "VarName12", "VarName13", "VarName14", "VarName15", "VarName16", "VarName17", "VarName18", "VarName19", "VarName20"];
+                opts.VariableTypes = ["categorical", "categorical", "categorical", "categorical", "categorical", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double", "double"];
+                
+                % Specify file level properties
+                opts.ExtraColumnsRule = "ignore";
+                opts.EmptyLineRule = "read";
+                
+                % Specify variable properties
+                opts = setvaropts(opts, ["model","scenario", "region", "variable", "unit"], "EmptyFieldRule", "auto");
+                
+                % Import the data
+                AllValues = readtable("C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\iam-explorer\examples\LIMITSPUBLIC_2014-10-13.csv", opts);
+                
+                years = obj.YEARS;
+                
+                tb = AllValues(:,1:5);
+                AllValues = AllValues{:,6:end};
+                
                 data = struct.empty();
                 if ~isempty(tb)
                     
@@ -161,16 +137,16 @@ classdef LIMITSconnection < matlab.mixin.SetGet
                     
                     for i = 1 : height(tb)
                         
-                        values = AllValues(i,6:end);
+                        values = AllValues(i,:);
                         values = values(~isnan(values));
                         nonEmpty = numel(values);
-                        varName = variables(i);
+                        varName = string(variables(i));
                         
                         data(num).model    = models(i);
                         data(num).scenario = scenarios(i);
                         data(num).variable = varName;
                         data(num).region   = regions(i);
-                        data(num).runID    = [];
+                        data(num).runID    = obj.TimeseriesList{i,'run_id'};
                         data(num).version  = [];
                         data(num).unit     = unit(i);
                         data(num).years    = years(1:nonEmpty);
@@ -190,69 +166,148 @@ classdef LIMITSconnection < matlab.mixin.SetGet
                     end
                 end
                 
-                data = iam.IAMTimeseries(data);
+                ts = iam.IAMTimeseries(data);
                 
             else
-                data = iam.IAMTimeseries.empty();
+                ts = iam.IAMTimeseries.empty();
             end
+        end
+        
+        function params = getRunDetails(obj, runId)
+            idx = obj.TimeseriesList.run_id == runId;
+            params = obj.TimeseriesList.variable(idx);            
+        end
+        
+        function refs = getRefs(obj)
             
+            models = obj.getAllModels;
+            ID = (1 : numel(models))';
+            Name = models;
+            refs.models = table(ID,Name);
+            
+            scenarios = obj.getAllScenarios;
+            ID = (1 : numel(scenarios))';
+            Name = scenarios;
+            refs.scenarios = table(ID,Name); 
+            
+            vars = unique(obj.TimeseriesList.variable);
+            ID = (1 : numel(vars))';
+            Name = vars;
+            refs.variables = table(ID,Name);
+            
+            reg = unique(obj.TimeseriesList.region);
+            ID = (1 : numel(reg))';
+            Name = reg;
+            refs.regions = table(ID,Name);
             
         end
         
-        function response = getAllModels(obj)
-            
-            response = unique(obj.TimeseriesList.model);
-            
+        function runs = getRunsList(obj)            
+            runs = obj.TimeseriesList;            
+        end
+    end
+    
+    methods
+        function value = get.Environment(obj)
+            value = obj.ENVIRONMENT;
         end
         
-        function response = getAllScenarios(obj)
-            
-            response = unique(obj.TimeseriesList.scenario);
-            
+        function response = getAllModels(obj)            
+            response = unique(obj.TimeseriesList.model);            
         end
         
-        function response = getAllVariables(obj)
-            
-            response = unique(obj.TimeseriesList.variable);
-            
-        end
+        function response = getAllScenarios(obj)            
+            response = unique(obj.TimeseriesList.scenario);            
+        end 
         
-        function runs = getRunsList(obj)
+        function value = getEnvironments(obj)
+            productName = obj.Config.productName;
+            env = obj.Config.env;
+            uiUrl = obj.File;
+            name = obj.Config.name;
+            scheme = "";
             
-            runs = obj.TimeseriesList;
-            
+            value = table(productName, env, uiUrl, name, scheme);
         end
         
     end
     
-    methods (Access = private)
-        
-        function getEnvConfig(obj, env)
-            
-            url = strjoin([obj.Auth_Url, "config/user", env.name], "/");
-            
-            env_config = obj.getRequest(url);
-            env_config = env_config.records;
-            
-            p = {env_config.path};
-            sel = @(x) strcmp(x, p);
-            obj.Config = struct(...
-                'name', env.name, ...
-                'scheme', env.scheme, ...
-                'env', env.env, ...
-                'productName', env.productName, ...
-                'uiUrl', env.uiUrl, ...
-                'authUrl', env_config(sel('authUrl')).value, ...
-                'baseUrl', env_config(sel('baseUrl')).value, ...
-                'database', env_config(sel('database')).value);
-            try
-                obj.Config.welcome = env_config(sel('welcomeMessage')).value;
-            catch
-                obj.Config.welcome = '';
-            end
-            
-        end
-        
-    end
     
+%     properties (Constant)
+%         Config struct = struct( ...
+%             'name', "LIMITS", 'env', "limits",'productName', "LIMITS", ...
+%             'database', "LIMITS", "welcome", "Welcome to the LIMITS Database");
+%     end
+%     
+%     properties (Access = private)
+%        ImportOptions 
+%     end
+%     
+%     properties
+%         AllEnvironments
+%     end
+%     
+%     
+%     methods %(Access = ?iam.IAMEnvironment)
+%         
+%         function value = getEnvironmentConfig(obj)
+%             value = obj.Config;
+%         end
+%         
+%         
+%         function value = getEnvironments(obj)
+%             value = obj.AllEnvironments;
+%         end
+%         
+%         
+%         function data = getCurrentData(obj, varargin)
+%             data = obj.getBulkData('models',obj.Model, 'scenarios', obj.Scenario, varargin{:});
+%         end
+%         
+%
+%         function response = getAllVariables(obj)
+%             
+%             response = unique(obj.TimeseriesList.variable);
+%             
+%         end
+%         
+%         function runs = getRunsList(obj)
+%             
+%             runs = obj.TimeseriesList;
+%             
+%         end
+%         
+%     end
+
+%     
+%     methods (Access = private)
+%         
+%         function getEnvConfig(obj, env)
+%             
+%             url = strjoin([obj.Auth_Url, "config/user", env.name], "/");
+%             
+%             env_config = obj.getRequest(url);
+%             env_config = env_config.records;
+%             
+%             p = {env_config.path};
+%             sel = @(x) strcmp(x, p);
+%             obj.Config = struct(...
+%                 'name', env.name, ...
+%                 'scheme', env.scheme, ...
+%                 'env', env.env, ...
+%                 'productName', env.productName, ...
+%                 'uiUrl', env.uiUrl, ...
+%                 'authUrl', env_config(sel('authUrl')).value, ...
+%                 'baseUrl', env_config(sel('baseUrl')).value, ...
+%                 'database', env_config(sel('database')).value);
+%             try
+%                 obj.Config.welcome = env_config(sel('welcomeMessage')).value;
+%             catch
+%                 obj.Config.welcome = '';
+%             end
+%             
+%         end
+%         
+%     end
+%     
 end
