@@ -1,4 +1,4 @@
-classdef IAMEnvironment < matlab.mixin.SetGet
+classdef Environment < matlab.mixin.SetGet
     
     % Copyright 2020-2021 The MathWorks, Inc.
     
@@ -23,7 +23,7 @@ classdef IAMEnvironment < matlab.mixin.SetGet
     
     methods
         
-        function obj = IAMEnvironment(conn)
+        function obj = Environment(conn)
             
             if nargin > 0
                 obj.Connection = conn;
