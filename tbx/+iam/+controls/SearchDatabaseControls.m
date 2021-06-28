@@ -5,7 +5,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         UITable matlab.ui.control.Table
         
-        SearchAxes iam.views.createAxesWithLegend
+        SearchAxes iam.views.IAMChart
         
         LoadDataButton             matlab.ui.control.Button
         SelectedtoWorkspaceButton  matlab.ui.control.Button

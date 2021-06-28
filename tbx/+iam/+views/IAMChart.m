@@ -5,6 +5,7 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
         CheckBox
         GridLayout
         LegendDropDown
+        ChartTypeDropDown
     end
     
     events
@@ -18,7 +19,7 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
             addlistener(obj,'PlotChanged', @(s,e) obj.HandlePlotChanged() );
             
             obj.GridLayout = uigridlayout(varargin{:});
-            obj.GridLayout.ColumnWidth = {'1x','1x','1x','1x'};
+            obj.GridLayout.ColumnWidth = {'1x','1x',160,'1x'};
             obj.GridLayout.RowHeight = {'1x', '20x'};
             obj.GridLayout.Padding = [0 0 0 0];
             
@@ -34,7 +35,7 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
             
             obj.CheckBox = uicheckbox(obj.GridLayout);
             obj.CheckBox.ValueChangedFcn = @(s,e) obj.DisplayLegendCheckBoxValueChanged(e);
-            obj.CheckBox.Text = 'Display Legend';
+            obj.CheckBox.Text = 'Display Legend, Location: ';
             obj.CheckBox.Layout.Row = 1;
             obj.CheckBox.Layout.Column = 3;
             obj.CheckBox.Value = true;
@@ -46,6 +47,17 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
                 "northoutside","southoutside","eastoutside","westoutside","northeastoutside","northwestoutside","southeastoutside","southwestoutside"];
             obj.LegendDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(e);
             
+            obj.ChartTypeDropDown = uidropdown(obj.GridLayout);
+            obj.ChartTypeDropDown.Layout.Row = 1;
+            obj.ChartTypeDropDown.Layout.Column = 2;
+            obj.ChartTypeDropDown.Items = ["line", "bar"];
+%             obj.ChartTypeDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(e);
+
+            lb = uilabel(obj.GridLayout);
+            lb.Layout.Row = 1;
+            lb.Layout.Column = 1;
+            lb.Text = 'Chart type';
+            lb.HorizontalAlignment = 'right';
         end
                 
     end
