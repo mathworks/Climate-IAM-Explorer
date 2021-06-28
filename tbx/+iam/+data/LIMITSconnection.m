@@ -31,7 +31,7 @@ classdef LIMITSconnection < iam.data.Connection
         function obj = LIMITSconnection(excelFile)
             
             if isfile(excelFile)
-                obj.File = excelFile;
+                obj.File = iam.utils.GetFullPath(excelFile);
                 
 %                 obj.ImportOptions = delimitedTextImportOptions("NumVariables", 20);
                 
