@@ -38,7 +38,7 @@ classdef LIMITSconnection < iam.data.Connection
                 opts = detectImportOptions(obj.File, 'TextType', 'string', 'ReadVariableNames', true, 'Range', 'A:E');
                 
                 rl = readtable(excelFile, opts);
-                rl.run_id = ones(height(rl), 1);
+                runId = ones(height(rl), 1);
                 count = 1;
                 model = rl.MODEL;
                 scenario = rl.SCENARIO;
@@ -46,8 +46,9 @@ classdef LIMITSconnection < iam.data.Connection
                     if ~(model(i) == model(i-1) && scenario(i) == scenario(i-1))
                         count = count + 1;
                     end
-                    rl.run_id(i) = count;
+                    runId(i) = count;
                 end
+                rl.run_id = runId;
                 obj.TimeseriesList = rl;
                 obj.TimeseriesList.Properties.VariableNames = {'model','scenario','region','variable','unit','run_id'};
                 % I probably want a caching option here.
@@ -202,8 +203,9 @@ classdef LIMITSconnection < iam.data.Connection
             
         end
         
-        function runs = getRunsList(obj)            
-            runs = obj.TimeseriesList;            
+        function runs = getRunsList(obj)
+            [~, filteredList, ~] = unique(obj.TimeseriesList.run_id);
+            runs = obj.TimeseriesList(filteredList, :);            
         end
     end
     
@@ -231,83 +233,5 @@ classdef LIMITSconnection < iam.data.Connection
         end
         
     end
-    
-    
-%     properties (Constant)
-%         Config struct = struct( ...
-%             'name', "LIMITS", 'env', "limits",'productName', "LIMITS", ...
-%             'database', "LIMITS", "welcome", "Welcome to the LIMITS Database");
-%     end
-%     
-%     properties (Access = private)
-%        ImportOptions 
-%     end
-%     
-%     properties
-%         AllEnvironments
-%     end
-%     
-%     
-%     methods %(Access = ?iam.IAMEnvironment)
-%         
-%         function value = getEnvironmentConfig(obj)
-%             value = obj.Config;
-%         end
-%         
-%         
-%         function value = getEnvironments(obj)
-%             value = obj.AllEnvironments;
-%         end
-%         
-%         
-%         function data = getCurrentData(obj, varargin)
-%             data = obj.getBulkData('models',obj.Model, 'scenarios', obj.Scenario, varargin{:});
-%         end
-%         
-%
-%         function response = getAllVariables(obj)
-%             
-%             response = unique(obj.TimeseriesList.variable);
-%             
-%         end
-%         
-%         function runs = getRunsList(obj)
-%             
-%             runs = obj.TimeseriesList;
-%             
-%         end
-%         
-%     end
-
-%     
-%     methods (Access = private)
-%         
-%         function getEnvConfig(obj, env)
-%             
-%             url = strjoin([obj.Auth_Url, "config/user", env.name], "/");
-%             
-%             env_config = obj.getRequest(url);
-%             env_config = env_config.records;
-%             
-%             p = {env_config.path};
-%             sel = @(x) strcmp(x, p);
-%             obj.Config = struct(...
-%                 'name', env.name, ...
-%                 'scheme', env.scheme, ...
-%                 'env', env.env, ...
-%                 'productName', env.productName, ...
-%                 'uiUrl', env.uiUrl, ...
-%                 'authUrl', env_config(sel('authUrl')).value, ...
-%                 'baseUrl', env_config(sel('baseUrl')).value, ...
-%                 'database', env_config(sel('database')).value);
-%             try
-%                 obj.Config.welcome = env_config(sel('welcomeMessage')).value;
-%             catch
-%                 obj.Config.welcome = '';
-%             end
-%             
-%         end
-%         
-%     end
-%     
+         
 end

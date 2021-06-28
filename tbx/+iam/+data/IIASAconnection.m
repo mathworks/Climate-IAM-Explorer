@@ -266,14 +266,18 @@ classdef IIASAconnection < iam.data.Connection
         
         function set.Environment(obj, value)
             
-            idx_name = strcmpi(obj.AllEnvironments.name, value);
-            idx_productName = strcmpi(obj.AllEnvironments.productName, value);
-            idx_env = strcmpi(obj.AllEnvironments.env, value);
+            idx_name = matches(obj.AllEnvironments.name, value,'IgnoreCase',true);
+            idx_productName = matches(obj.AllEnvironments.productName, value,'IgnoreCase',true);
+            idx_env = matches(obj.AllEnvironments.env, value,'IgnoreCase',true);
             
             idx = idx_name | idx_productName | idx_env;
             
             if ~any(idx)
                 error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of: " + strjoin(obj.AllEnvironments.env,', '))
+            end
+            
+            if nnz(idx) > 1
+               idx = find(idx, 1); 
             end
             
             obj.getEnvConfig( obj.AllEnvironments(idx, :) )
