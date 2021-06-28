@@ -9,6 +9,7 @@ classdef (Abstract) Connection < matlab.mixin.SetGetExactNames
         params = getRunDetails( obj, runId );
         refs   = getRefs( obj );
         runs   = getRunsList();
+        value  = getDocumentation(obj, type, idx);
         
         response = getAllModels(obj)
         response = getAllScenarios(obj)

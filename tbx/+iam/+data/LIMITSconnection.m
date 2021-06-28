@@ -207,6 +207,13 @@ classdef LIMITSconnection < iam.data.Connection
             [~, filteredList, ~] = unique(obj.TimeseriesList.run_id);
             runs = obj.TimeseriesList(filteredList, :);            
         end
+        
+         function value = getDocumentation(obj, type, idx)
+            
+             value = struct('description','Please visit the <a href="https://tntcat.iiasa.ac.at/LIMITSDB/dsd?Action=htmlpage&page=about#cpy" target="_blank">official LIMITS Website</a> for details ');
+            
+         end
+        
     end
     
     methods
