@@ -148,8 +148,15 @@ classdef IIASAconnection < iam.data.Connection
                         data(num).runId = string(tb.runId(i));
                         data(num).version = string(tb.version(i));
                         data(num).years = tb.year(current:i);
+                        
+                        if strlength(data(num).variable) >= 60
+                            varName = extractBetween(data(num).variable,1, 59);
+                        else
+                            varName = data(num).variable;
+                        end
+                        
                         data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
-                            'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', data(num).variable);
+                            'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', varName);
                         
                         num = num + 1;
                         current = i + 1;
