@@ -1,4 +1,4 @@
-classdef createAxesWithLegend < matlab.mixin.SetGet
+classdef IAMChart < matlab.mixin.SetGet
     
     properties
         UIAxes
@@ -8,13 +8,23 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
         ChartTypeDropDown
     end
     
+    properties
+        BarStyle = "stacked";
+    end
+    
+    properties (Access = private)
+        Data (:,1) iam.IAMTimeseries
+        BarProps cell = {};
+        LineProps cell = {'LineWidth',2};
+    end
+    
     events
-      PlotChanged
+        PlotChanged
     end
     
     methods
         
-        function obj = createAxesWithLegend(varargin)
+        function obj = IAMChart(varargin)
             
             addlistener(obj,'PlotChanged', @(s,e) obj.HandlePlotChanged() );
             
@@ -45,21 +55,42 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
             obj.LegendDropDown.Layout.Column = 4;
             obj.LegendDropDown.Items = ["best","bestoutside","north","south","east","west","northeast","northwest","southeast","southwest", ...
                 "northoutside","southoutside","eastoutside","westoutside","northeastoutside","northwestoutside","southeastoutside","southwestoutside"];
-            obj.LegendDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(e);
+            obj.LegendDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(s, e);
             
             obj.ChartTypeDropDown = uidropdown(obj.GridLayout);
             obj.ChartTypeDropDown.Layout.Row = 1;
             obj.ChartTypeDropDown.Layout.Column = 2;
             obj.ChartTypeDropDown.Items = ["line", "bar"];
-%             obj.ChartTypeDropDown.ValueChangedFcn = @(s,e) obj.ChangeLegendLocation(e);
-
+            obj.ChartTypeDropDown.ValueChangedFcn = @(s,e) obj.ChangePlotType();
+            
             lb = uilabel(obj.GridLayout);
             lb.Layout.Row = 1;
             lb.Layout.Column = 1;
             lb.Text = 'Chart type';
             lb.HorizontalAlignment = 'right';
         end
-                
+        
+        function changeData(obj, data, varargin)
+            if nargin > 2
+                if obj.ChartTypeDropDown.Value == "line"
+                    obj.LineProps = varargin;
+                elseif obj.ChartTypeDropDown.Value == "bar"
+                    obj.BarProps = varargin;
+                end
+            end
+            obj.Data = data;
+            notify(obj, 'PlotChanged');
+        end
+        
+        function changeProps(obj, varargin)
+            if obj.ChartTypeDropDown == "line"
+                obj.LineProps = varargin;
+            elseif obj.ChartTypeDropDown == "bar"
+                obj.BarProps = varargin;
+            end
+            notify(obj, 'PlotChanged');
+        end
+        
     end
     
     methods (Access = private)
@@ -71,11 +102,15 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
             end
         end
         
-        function ChangeLegendLocation(obj, e)
+        function ChangeLegendLocation(obj, s, e)
             value = e.Value;
             if ~isempty(obj.UIAxes.Legend)
                 obj.UIAxes.Legend.Location = value;
             end
+        end
+        
+        function ChangePlotType(obj)
+            obj.update();
         end
         
         function HandlePlotChanged(obj)
@@ -88,8 +123,21 @@ classdef createAxesWithLegend < matlab.mixin.SetGet
                 obj.UIAxes.Legend.Location = loc;
             end
             
+            obj.update()
+            
         end
         
-    end    
+        function update(obj)
+            if ~isempty(obj.Data)
+                switch obj.ChartTypeDropDown.Value
+                    case 'line'
+                        plot(obj.Data, 'Parent', obj.UIAxes, obj.LineProps{:});
+                    case 'bar'
+                        bar(obj.Data, obj.BarStyle, 'Parent', obj.UIAxes, obj.BarProps{:});
+                end
+            end
+        end
+        
+    end
     
 end

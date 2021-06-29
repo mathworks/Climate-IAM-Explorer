@@ -43,7 +43,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             obj.MainGridLayout = g1;
             
             % Set Search Database Tab axis
-            SDAx = iam.views.createAxesWithLegend('Parent',g1);
+            SDAx = iam.views.IAMChart('Parent',g1);
             SDAx.GridLayout.Layout.Row = [1 3];
             SDAx.GridLayout.Layout.Column = 5;
             
@@ -222,8 +222,8 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             indices = event.Indices;
             obj.TableIdx = indices;
             [~,b] = intersect(obj.TableData.getRunList, obj.UITable.Data(indices(:,1),:));
-            plot(obj.TableData(b),'Parent',obj.SearchAxes.UIAxes,'LineWidth',2);
-            notify(obj.SearchAxes,'PlotChanged')
+            obj.SearchAxes.changeData(obj.TableData(b));
+            
         end
         
     end

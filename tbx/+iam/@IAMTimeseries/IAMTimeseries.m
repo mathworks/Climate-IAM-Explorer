@@ -26,7 +26,7 @@ classdef IAMTimeseries
                 
                 m = size(Data,1);
                 n = size(Data,2);
-                obj = repelem(obj,m,n);
+                obj = repelem(obj,n,m);
                 
                 for i = 1 : numel(Data)
                     data = Data(i);
