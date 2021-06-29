@@ -41,6 +41,43 @@ classdef IAMTimeseries
                 
             end
             
+        end        
+        
+        function r = plus(obj1, obj2) 
+            
+            tt = synchronize(obj1.Values, obj2.Values);            
+            lim = numel(obj1);
+            newValues = tt{:, 1:lim} + tt{:, lim+1:end};
+            
+            r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
+            
+        end
+        
+        function r = minus(obj1, obj2)
+                        
+            tt = synchronize(obj1.Values, obj2.Values);
+            lim = numel(obj1);
+            newValues = tt{:, 1:lim} - tt{:, lim+1:end};
+            
+            r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
+        end
+        
+        function r = times(obj1, obj2)
+                        
+            tt = synchronize(obj1.Values, obj2.Values);
+            lim = numel(obj1);
+            newValues = tt{:, 1:lim}.*tt{:, lim+1:end};
+            
+            r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
+        end
+        
+        function r = rdivide(obj1, obj2)
+                        
+            tt = synchronize(obj1.Values, obj2.Values);
+            lim = numel(obj1);
+            newValues = tt{:, 1:lim}./tt{:, lim+1:end};
+            
+            r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
         end
         
         function [h,l] = plot(obj, varargin)
@@ -123,6 +160,31 @@ classdef IAMTimeseries
                 );
         end
         
+    end
+    
+    methods (Static, Access = private)
+        
+        function r = getGeneric(newValues, date) 
+            
+            r = iam.IAMTimeseries();
+            
+            r.Model    = "Custom";
+            r.Scenario = "Custom";
+            r.Variable = "Custom";
+            r.Region   = "Custom";
+            r.Unit     = "Custom";
+            r.RunId    = NaN;
+            r.Version  = NaN;
+            
+            r = repmat(r, size(newValues, 2), 1);
+            Y = year(date);
+            for i = 1 : size(newValues, 2)
+                r(i).Years = Y;
+                r(i).Values = timetable(date, newValues(:,i), ...
+                    'DimensionNames', {'Year','VariableUnits'}, 'VariableNames',{'Values'});
+            end
+            
+        end
     end
     
 end
