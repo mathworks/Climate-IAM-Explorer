@@ -2,6 +2,10 @@ classdef IAMWorkspace < matlab.mixin.SetGet
     
     % Copyright 2020-2021 The MathWorks, Inc.
     
+    properties
+%        ViewAxes iam.views.IAMChart 
+    end
+    
     properties (Dependent, SetAccess = private)
         FilteredData (:,1) struct
     end
