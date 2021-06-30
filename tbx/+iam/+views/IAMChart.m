@@ -8,9 +8,9 @@ classdef IAMChart < matlab.mixin.SetGet
         ChartTypeDropDown
     end
     
-    properties
-        BarStyle = "stacked";
-    end
+%     properties
+%         BarStyle = "stacked";
+%     end
     
     properties (Access = private)
         Data (:,1) iam.IAMTimeseries
@@ -30,8 +30,8 @@ classdef IAMChart < matlab.mixin.SetGet
             
             obj.GridLayout = uigridlayout(varargin{:});
             obj.GridLayout.ColumnWidth = {'1x','1x',160,'1x'};
-            obj.GridLayout.RowHeight = {'1x', '20x'};
-            obj.GridLayout.Padding = [0 0 0 0];
+            obj.GridLayout.RowHeight = {30, '20x'};
+            obj.GridLayout.Padding = [0 0 5 5];
             
             obj.UIAxes = uiaxes(obj.GridLayout);
             title(obj.UIAxes, '')
@@ -60,7 +60,7 @@ classdef IAMChart < matlab.mixin.SetGet
             obj.ChartTypeDropDown = uidropdown(obj.GridLayout);
             obj.ChartTypeDropDown.Layout.Row = 1;
             obj.ChartTypeDropDown.Layout.Column = 2;
-            obj.ChartTypeDropDown.Items = ["line", "bar"];
+            obj.ChartTypeDropDown.Items = ["line", "bar stacked", "bar grouped"];
             obj.ChartTypeDropDown.ValueChangedFcn = @(s,e) obj.ChangePlotType();
             
             lb = uilabel(obj.GridLayout);
@@ -79,7 +79,7 @@ classdef IAMChart < matlab.mixin.SetGet
                 end
             end
             obj.Data = data;
-            notify(obj, 'PlotChanged');
+            obj.update()
         end
         
         function changeProps(obj, varargin)
@@ -88,7 +88,7 @@ classdef IAMChart < matlab.mixin.SetGet
             elseif obj.ChartTypeDropDown == "bar"
                 obj.BarProps = varargin;
             end
-            notify(obj, 'PlotChanged');
+            obj.update()
         end
         
     end
@@ -123,8 +123,6 @@ classdef IAMChart < matlab.mixin.SetGet
                 obj.UIAxes.Legend.Location = loc;
             end
             
-            obj.update()
-            
         end
         
         function update(obj)
@@ -132,10 +130,15 @@ classdef IAMChart < matlab.mixin.SetGet
                 switch obj.ChartTypeDropDown.Value
                     case 'line'
                         plot(obj.Data, 'Parent', obj.UIAxes, obj.LineProps{:});
-                    case 'bar'
-                        bar(obj.Data, obj.BarStyle, 'Parent', obj.UIAxes, obj.BarProps{:});
+                    case 'bar stacked'
+                        bar(obj.Data, 'stacked', 'Parent', obj.UIAxes, obj.BarProps{:});
+                    case 'bar grouped'
+                        bar(obj.Data, 'grouped', 'Parent', obj.UIAxes, obj.BarProps{:});
                 end
+            else
+                cla(obj.UIAxes);
             end
+            notify(obj, 'PlotChanged')
         end
         
     end

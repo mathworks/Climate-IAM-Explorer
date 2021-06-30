@@ -41,7 +41,16 @@ classdef IAMTimeseries
                 
             end
             
-        end        
+        end 
+        
+        function tt = toTable(obj)
+            tt = synchronize(obj.Values);
+        end
+        
+        function tb = summary(obj)
+            tb = table([1:numel(obj)]',[obj.Model]', [obj.Scenario]', [obj.Region]', [obj.Variable]', [obj.Unit]', ...
+                'VariableNames', {'ts','Model','Scenario','Region','Variable','Unit'});
+        end
         
         function r = plus(obj1, obj2) 
             

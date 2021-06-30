@@ -66,13 +66,13 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             obj.SelectedtoWorkspaceButton = uibutton(g1, 'push');
             obj.SelectedtoWorkspaceButton.Layout.Row = 3;
             obj.SelectedtoWorkspaceButton.Layout.Column = 2;
-            obj.SelectedtoWorkspaceButton.Text = 'Selected to Workspace';
+            obj.SelectedtoWorkspaceButton.Text = 'Selected to Workbook';
             
             % Create AlltoWorkspaceButton
             obj.AlltoWorkspaceButton = uibutton(g1, 'push');
             obj.AlltoWorkspaceButton.Layout.Row = 3;
             obj.AlltoWorkspaceButton.Layout.Column = 3;
-            obj.AlltoWorkspaceButton.Text = 'All to Workspace';
+            obj.AlltoWorkspaceButton.Text = 'All to Workbook';
             
             % Create InputvaluesseparatedbysemicolonsPanel
             p1 = uipanel(g1);
