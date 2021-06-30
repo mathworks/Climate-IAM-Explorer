@@ -1,4 +1,4 @@
-classdef IAMworkbook < matlab.mixin.SetGet
+classdef IAMworkbook < matlab.mixin.SetGetExactNames
     
     properties (Access = public)
         
@@ -78,15 +78,6 @@ classdef IAMworkbook < matlab.mixin.SetGet
             obj.createComponents
             
         end
-%         
-%         function obj = IAMWorkspace(data)
-%             
-%             if nargin == 1
-%                 obj.Data = data;
-%                 obj.resetFilter;
-%             end
-%             
-%         end
         
         function addData(obj, data)
             
