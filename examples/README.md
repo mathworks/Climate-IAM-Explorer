@@ -6,7 +6,7 @@ Table of Contents
 - [Methodology](#Methodology)
 - [Data](#Data)
 - [Market Share shock calculation](#MarketShareshockcalculation)
-- [Coal in Africa](#CoalinAfrica)
+  * [Coal in Africa](#CoalinAfrica)
 - [Wind in Europe](#WindinEurope)
 - [Application to any Region and Model](#ApplicationtoanyRegionandModel)
 - [Results](#Results)
