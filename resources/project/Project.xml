@@ -1,2 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
+<<<<<<< HEAD
 <Info MetadataType="distributed" />
+=======
+<Info MetadataType="fixedPathV2" />
+>>>>>>> 2813af870e4a3095e4ef8ac22a63e3b5d07c9590
