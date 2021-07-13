@@ -4,10 +4,11 @@ Table of Contents
 
 - [Introduction](#Introduction)
 - [Methodology](#Methodology)
+- [Data](#Data)
 - [Market Share shock calculation](#MarketShareshockcalculation)
-- [Coal in Africa](#CoalinAfrica)
-- [Wind in Europe](#WindinEurope)
-- [Application to any Region and Model](#ApplicationtoanyRegionandModel)
+  * [Coal in Africa](#CoalinAfrica)
+  * [Wind in Europe](#WindinEurope)
+  * [Application to any Region and Model](#ApplicationtoanyRegionandModel)
 - [Results](#Results)
 - [References](#References)
 
