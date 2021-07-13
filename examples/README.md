@@ -3,7 +3,7 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge,IE=9,chrome=1" />
         <meta name="generator" content="MATLAB 2021a" />
-        <title>A climate stress-test methodology for loan portfolios</title>
+        <--! <title>A climate stress-test methodology for loan portfolios</title> -->
         <style type="text/css">
             .rtcContent {
                 padding: 30px;
