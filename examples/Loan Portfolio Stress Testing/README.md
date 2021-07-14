@@ -1,8 +1,8 @@
-# Acknowledgements
+# A climate stress-test methodology for loan portfolios
+
+## Acknowledgements
 
 We’d like to thank **Stefano Battiston, Antoine Mandel and Irene Monasterolo** for their help in developing and validating this example. The three scholars are amongst the authors of the referenced papers, rank among the leaders in global climate impact research, and are pioneers in the assessment of climate-related financial risks. They are also founders of [**CLIMAFIN**](https://climafin.com/), a start-up that provides solutions climate-related financial risk for corporate clients.
-
-# A climate stress-test methodology for loan portfolios
 
 Table of Contents
 
@@ -16,7 +16,7 @@ Table of Contents
 - [Results](#Results)
 - [References](#References)
 
-# Introduction
+## Introduction
 
 This section illustrates an example of calculation of climate financial risk, focusing on energy infrastructure loans, extracted from [**Monasterolo et al. 2018**](#ref1). The work demonstrates how one can calculate climate policy shocks based on forward-looking trajectories of market shares of energy sectors, by type of technology in fossil fuels and renewable energy, derived by Integrated Assessment Models (IAMs). It then shows how to assess the order of magnitude of changes in value of each bank’s loan, conditional upon a climate policy shock. The analysis is applied to Chinese development banks’ energy infrastructure loans.
 
@@ -25,7 +25,7 @@ This work is part of a broader stream of research on climate mitigation scenario
 The approach of connecting IAM scenarios to financial shocks was first introduced in [**Battiston et al. 2017**](#ref1) which developed the general framework to compute: (i) shocks on the value of financial assets (equity holdings, bonds and loans), (ii) financial risk metrics, such as the Climate Value at Risk, and (iii) direct and indirect losses for portfolios of individual financial institutions. This approach can be used for Climate Stress test exercises where indirect losses are computed based on financial network models. This framework has been applied to supervisory data, covering bank loans and investment funds’ holdings in [**Roncoroni et al. 2021**](#ref5) in collaboration with the Central Bank of Mexico.
 
 
-# Methodology
+## Methodology
 
 
 The methodology of Monasterolo et al. 2018, considers a financial actor, *i*, with a portfolio of investments through contract loans to distinct borrowers, with a valuation model including three time steps: the time at which the valuation is carried out (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t_0"/>), the time at which a climate policy shock occurs (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t^*"/>), and the maturity of the loan to borrower *j* (<img src="https://latex.codecogs.com/gif.latex?\inline&space;T_j"/>). Within this scenario, the authors define the following variables:
@@ -69,7 +69,7 @@ These parameters should be calibrated based on the specific application. Hence, 
 
 <img src="https://latex.codecogs.com/gif.latex?\Delta&space;A_{i,j}&space;=F_{i,j}&space;u_{S,R}&space;\left(P,M,t^*&space;\right)"/>
 
-# Data
+## Data
 
 In order to calculate the market share shocks, one can use any of the available IAM models. As an example, using the NGFS database one can query the total net production of electricity in the World and the corresponding subsector corresponding to Coal.
 
@@ -141,11 +141,11 @@ models = [GCAM;WITCH];
 
 The loan data used in the paper was obtained from the [**GEGI database**](http://www.bu.edu/cgef/#/2019/EnergySource) for the two main Chinese banks.
 
-# Market Share shock calculation
+## Market Share shock calculation
 
 To calculate the market share shock values, we first need to calculate the market share of each of the selected variables. Within the context of the scenario databases maintained by IIASA (including the NGFS scenarios), this implies calculating the percentage of each variable over its parent magnitudes. Following the article examples, we focus here on two regions: AFRICA and EUROPE, and two magnitudes: the net production of electricity from COAL and WIND.
 
-## Coal in Africa
+### Coal in Africa
 
 In this first example, we concentrate on the net production of electricity from Coal in Africa. This magnitude appears under the name of ***"Secondary Energy|Electricity|Coal"*** in the database. The market share shocks are therefore computed as the relation between this variable and the total net production of electricity in AFRICA:
 
@@ -215,7 +215,7 @@ lg.Location = "eastoutside";
 
 ![figure_1.png](LoanPortfolioStressTesting_images/figure_1.png)
 
-## Wind in Europe
+### Wind in Europe
 
 In this second example, we concentrate on the net production of electricity from Wind in Europe. This magnitude appears under the name of **"Secondary Energy|Electricity|Wind"** in the LIMITS database. To determine the shocks coming from this magnitude, we first compute the market share of coal as:
 
@@ -274,7 +274,7 @@ ylim([0 300])
 
 ![figure_3.png](LoanPortfolioStressTesting_images/figure_3.png)
 
-## Application to any Region and Model
+### Application to any Region and Model
 
 Note that while the two examples above are for specific regions and scenarios within the LIMITS database, this same analysis can be applied to other regions and IAM models available in the IIASA database. For example:
 
@@ -317,7 +317,7 @@ plotMarketShare(ts, scenarioIdx, mainSectorIdx)
 
 ![figure_4.png](LoanPortfolioStressTesting_images/figure_4.png)
 
-# Results
+## Results
 
 Once we have the market share shocks, we are in the position of computing the change in expected value of a loan. To match the results provided in the article, we have automated this process such that one can select a region, model, sector, scenario, and the calculator returns the expected value of a loan, given its Face Value <img src="https://latex.codecogs.com/gif.latex?\inline&space;F_{i,j}"/>
 
@@ -360,7 +360,7 @@ disp("Value adjusted at 2030 is: " + total(4))
 Value adjusted at 2030 is: 116.4752
 ```
 
-# References
+## References
 
 <a name="ref1">[1]</a>: Battiston, S., Mandel, A., Monasterolo, I., Schütze, F., and Visentin, G., **A climate stress-test of the financial system**. *Nature Clim Change 7,*** **283–288 (2017). [https://doi.org/doi:10.1038/nclimate3255]
 (https://doi.org/doi:10.1038/nclimate3255)
