@@ -135,7 +135,7 @@ ans =
 models = [GCAM;WITCH];
 ```
 
-The loan data used in the paper was obtained from the [GEGI database](http://www.bu.edu/cgef/#/2019/EnergySource) for the two main Chinese banks.
+The loan data used in the paper was obtained from the [**GEGI database**](http://www.bu.edu/cgef/#/2019/EnergySource) for the two main Chinese banks.
 
 # Market Share shock calculation
 
@@ -145,7 +145,7 @@ To calculate the market share shock values, we first need to calculate the marke
 
 In this first example, we concentrate on the net production of electricity from Coal in Africa. This magnitude appears under the name of ***"Secondary Energy|Electricity|Coal"*** in the database. The market share shocks are therefore computed as the relation between this variable and the total net production of electricity in AFRICA:
 
-<img src="https://latex.codecogs.com/gif.latex?\inline&space;m_{(COAL\;,AFRICA)}&space;=\frac{"Secondary\;Energy|Electricity|Coal"}{"Secondary\;Energy|Electricity"}"/>.
+<img src="https://latex.codecogs.com/svg.image?m_{(COAL\;,&space;AFRICA)}&space;=&space;\frac{Secondary&space;\;&space;Energy|Electricity|Coal}{Secondary&space;\;&space;Energy|Electricity}" title="m_{(COAL\;, AFRICA)} = \frac{Secondary \; Energy|Electricity|Coal}{Secondary \; Energy|Electricity}" />
 
 ```matlab:Code
 sector = "Secondary Energy|Electricity|Coal";
@@ -212,7 +212,7 @@ lg.Location = "eastoutside";
 
 In this second example, we concentrate on the net production of electricity from Wind in Europe. This magnitude appears under the name of **"Secondary Energy|Electricity|Wind"** in the LIMITS database. To determine the shocks coming from this magnitude, we first compute the market share of coal as:
 
-<img src="https://latex.codecogs.com/gif.latex?m_{(WIND\;,EUROPE)}&space;=\frac{"Secondary\;Energy|Electricity|Wind"}{"Secondary\;Energy|Electricity"}"/>
+<img src="https://latex.codecogs.com/svg.image?m_{(WIND\;,&space;EUROPE)}&space;&space;=&space;\frac{"Secondary&space;\;&space;Energy|Electricity|Wind"}{"Secondary&space;\;&space;Energy|Electricity"}" title="m_{(WIND\;, EUROPE)} = \frac{"Secondary \; Energy|Electricity|Wind"}{"Secondary \; Energy|Electricity"}" />
 
 ```matlab:Code
 Europe = WITCH([WITCH.Region] == "EUROPE");
