@@ -212,7 +212,7 @@ lg.Location = "eastoutside";
 
 In this second example, we concentrate on the net production of electricity from Wind in Europe. This magnitude appears under the name of **"Secondary Energy|Electricity|Wind"** in the LIMITS database. To determine the shocks coming from this magnitude, we first compute the market share of coal as:
 
-<img src="https://latex.codecogs.com/svg.image?m_{(WIND\;,&space;EUROPE)}&space;&space;=&space;\frac{"Secondary&space;\;&space;Energy|Electricity|Wind"}{"Secondary&space;\;&space;Energy|Electricity"}" title="m_{(WIND\;, EUROPE)} = \frac{"Secondary \; Energy|Electricity|Wind"}{"Secondary \; Energy|Electricity"}" />
+<img src="https://latex.codecogs.com/svg.image?m_{(WIND\;,&space;EUROPE)}&space;&space;=&space;\frac{Secondary&space;\;&space;Energy|Electricity|Wind}{Secondary&space;\;&space;Energy|Electricity}" title="m_{(WIND\;, EUROPE)} = \frac{Secondary \; Energy|Electricity|Wind}{Secondary \; Energy|Electricity}" />
 
 ```matlab:Code
 Europe = WITCH([WITCH.Region] == "EUROPE");
