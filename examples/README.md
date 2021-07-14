@@ -14,7 +14,7 @@ Table of Contents
 
 # Introduction
 
-This section illustrates an example of calculation of climate financial risk, focusing on energy infrastructure loans, extracted from [**Monasterolo et al. 2018**][1]. The work demonstrates how one can calculate climate policy shocks based on forward-looking trajectories of market shares of energy sectors, by type of technology in fossil fuels and renewable energy, derived by Integrated Assessment Models (IAMs). It then shows how to assess the order of magnitude of changes in value of each bank’s loan, conditional upon a climate policy shock. The analysis is applied to Chinese development banks’ energy infrastructure loans.
+This section illustrates an example of calculation of climate financial risk, focusing on energy infrastructure loans, extracted from [**Monasterolo et al. 2018**](#ref1). The work demonstrates how one can calculate climate policy shocks based on forward-looking trajectories of market shares of energy sectors, by type of technology in fossil fuels and renewable energy, derived by Integrated Assessment Models (IAMs). It then shows how to assess the order of magnitude of changes in value of each bank’s loan, conditional upon a climate policy shock. The analysis is applied to Chinese development banks’ energy infrastructure loans.
 
 This work is part of a broader stream of research on climate mitigation scenarios and financial risk, discussed in the 2021 Science article by \hyperref{M_3DDFF708}{**Battiston et al. 2021**}**.**In particular, it can be applied to the climate scenarios of orderly and disorderly transition developed by the Network for Greening the Financial System (\hyperref{M_74321760}{**NGFS 2020**}).
 
@@ -355,7 +355,8 @@ Value adjusted at 2030 is: 116.4752
 
 # References
 
-[1]: Battiston, S., Mandel, A., Monasterolo, I., Schütze, F., and Visentin, G., **A climate stress-test of the financial system**. *Nature Clim Change 7,*** **283–288 (2017). [https://doi.org/doi:10.1038/nclimate3255](https://protect-us.mimecast.com/s/UYJpC73M7jTLEmM9s8O3Te?domain=doi.org)
+<a name="ref1">[1]</a>: Battiston, S., Mandel, A., Monasterolo, I., Schütze, F., and Visentin, G., **A climate stress-test of the financial system**. *Nature Clim Change 7,*** **283–288 (2017). [https://doi.org/doi:10.1038/nclimate3255]
+(https://doi.org/doi:10.1038/nclimate3255)
 
 [2]: Battiston, S., Monasterolo, I., Riahi, K., \& van Ruijven, B. (2021). **Climate mitigation pathways need to account for the ambivalent role of finance**. *Science*, 28 May 2021, 10.1126/science.abf3877. https://science.sciencemag.org/content/early/2021/05/19/science.abf3877
 
