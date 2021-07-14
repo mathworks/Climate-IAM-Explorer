@@ -337,7 +337,8 @@ Value at 2030 is: -3312.631
 
 Finally, recall that we made the assumptions that
 
-<img src="https://latex.codecogs.com/gif.latex?\inline&space;r_j"/> = 1             <img src="https://latex.codecogs.com/gif.latex?\inline&space;\frac{E_j&space;}{\delta&space;}\chi"/> = 1
+<img src="https://latex.codecogs.com/gif.latex?\inline&space;r_j"/> = 1             
+<img src="https://latex.codecogs.com/gif.latex?\inline&space;\frac{E_j&space;}{\delta&space;}\chi"/> = 1
 
 which are easily incorporated into the model by defining a couple of constants:
 
