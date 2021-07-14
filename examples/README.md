@@ -18,7 +18,7 @@ This section illustrates an example of calculation of climate financial risk, fo
 
 This work is part of a broader stream of research on climate mitigation scenarios and financial risk, discussed in the 2021 Science article by [**Battiston et al. 2021**](#ref2). In particular, it can be applied to the climate scenarios of orderly and disorderly transition developed by the Network for Greening the Financial System [**NGFS 2020**](#ref4).
 
-The approach of connecting IAM scenarios to financial shocks was first introduced in [**Battiston et al. 2017**](#ref1) which developed the general framework to compute: (i) shocks on the value of financial assets (equity holdings, bonds and loans), (ii) financial risk metrics, such as the Climate Value at Risk, and (iii) direct and indirect losses for portfolios of individual financial institutions. This approach can be used for Climate Stress test exercises where indirect losses are computed based on financial network models. This framework has been applied to supervisory data, covering bank loans and investment funds’ holdings in [**Roncoroni et al. 2021 **](#ref5) in collaboration with the Central Bank of Mexico.
+The approach of connecting IAM scenarios to financial shocks was first introduced in [**Battiston et al. 2017**](#ref1) which developed the general framework to compute: (i) shocks on the value of financial assets (equity holdings, bonds and loans), (ii) financial risk metrics, such as the Climate Value at Risk, and (iii) direct and indirect losses for portfolios of individual financial institutions. This approach can be used for Climate Stress test exercises where indirect losses are computed based on financial network models. This framework has been applied to supervisory data, covering bank loans and investment funds’ holdings in [**Roncoroni et al. 2021**](#ref5) in collaboration with the Central Bank of Mexico.
 
 
 # Methodology
@@ -75,7 +75,7 @@ e = iam.IAMEnvironment(c);
 ts = e.getTimeSeries('model',"GCAM5.3_NGFS",'regions',"World", 'Variables', ...
                      ["Secondary Energy|Electricity", "Secondary Energy|Electricity|Coal"], 'strict', true)
 ```
-Similarly, the climate data for the article of this example was obtained using [LIMITS database](https://tntcat.iiasa.ac.at/LIMITSDB/dsd?Action=htmlpage&page=about) and then stored into a .MAT file for ease of use. The full database can be downloaded as a CSV file directly from [the database main website](https://tntcat.iiasa.ac.at/LIMITSPUBLICDB/dsd?Action=htmlpage&page=register1-3). The authors collected data from two models, (GCAM and WITCH) and three different scenarios (Base, RefPol500, StrPol450). In turn, each of this model-scenario pairs, contains data on 10 relevant regions and several variables.
+Similarly, the climate data for the article of this example was obtained using [**LIMITS database**](https://tntcat.iiasa.ac.at/LIMITSDB/dsd?Action=htmlpage&page=about) and then stored into a .MAT file for ease of use. The full database can be downloaded as a CSV file directly from [**the database main website**](https://tntcat.iiasa.ac.at/LIMITSPUBLICDB/dsd?Action=htmlpage&page=register1-3). The authors collected data from two models, (GCAM and WITCH) and three different scenarios (Base, RefPol500, StrPol450). In turn, each of this model-scenario pairs, contains data on 10 relevant regions and several variables.
 
 ```matlab:Code
 format bank
