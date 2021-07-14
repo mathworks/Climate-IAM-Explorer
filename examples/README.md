@@ -24,7 +24,7 @@ The approach of connecting IAM scenarios to financial shocks was first introduce
 # Methodology
 
 
-The methodology of Monasterolo et al. 2018, considers a financial actor, *i*, with a portfolio of investments through contract loans to distinct borrowers, with a valuation model including three time steps: the time at which the valuation is carried out (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t_0"/>), the time at which a climate policy shock occurs (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t^*"/>), and the maturity of the loan to borrower *j *(<img src="https://latex.codecogs.com/gif.latex?\inline&space;T_j"/>). Within this scenario, the authors define the following variables:
+The methodology of Monasterolo et al. 2018, considers a financial actor, *i*, with a portfolio of investments through contract loans to distinct borrowers, with a valuation model including three time steps: the time at which the valuation is carried out (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t_0"/>), the time at which a climate policy shock occurs (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t^*"/>), and the maturity of the loan to borrower *j* (<img src="https://latex.codecogs.com/gif.latex?\inline&space;T_j"/>). Within this scenario, the authors define the following variables:
 
 
 
@@ -183,6 +183,10 @@ Knowing the market share, we can then compute the market share shocks as the dif
 
 <img src="https://latex.codecogs.com/gif.latex?u_{COAL,\;AFRICA}&space;\left(P\right)=\frac{m_{COAL,\;AFRICA}&space;\left(P\right)-m_{COAL,\;AFRICA}&space;\left(B\right)}{m_{COAL,\;AFRICA}&space;\left(B\right)}"/>
 
+```matlab:Code
+shocks = (msCoalAfrica(:,2:3) - msCoalAfrica(:,1))./msCoalAfrica(:,1)*100;
+```
+
 and if we plot them together, we obtain the market share shock corresponding to each point in time (<img src="https://latex.codecogs.com/gif.latex?\inline&space;t^*"/>)
 
 ```matlab:Code
@@ -195,7 +199,6 @@ xlabel('Years');
 ylabel('Market Share (%)')
 
 yyaxis right
-shocks = (msCoalAfrica(:,2:3) - msCoalAfrica(:,1))./msCoalAfrica(:,1)*100;
 shp = plot(CoalInAfrica.Year, shocks, 'LineWidth',2);
 set(shp, {'LineStyle'}, {'--';':'})
 ylabel('Market Share Shocks (%)')
@@ -218,16 +221,15 @@ In this second example, we concentrate on the net production of electricity from
 Europe = WITCH([WITCH.Region] == "EUROPE");
 sector = "Secondary Energy|Electricity|Wind";
 baseSector = getUpperSector(sector);
+
+WindInEurope = synchronize(Europe( [Europe.Variable] == sector).Values);
+ElecInAfrica = synchronize(Europe( [Europe.Variable] == baseSector).Values);
+msWindEurope = WindInEurope{:,:}./ElecInAfrica{:,:}*100;
 ```
 
 As before, we can then plot these results and visualize the market share trends for the given variable:
 
 ```matlab:Code
-WindInEurope = synchronize(Europe( [Europe.Variable] == sector).Values);
-ElecInAfrica = synchronize(Europe( [Europe.Variable] == baseSector).Values);
-msWindEurope = WindInEurope{:,:}./ElecInAfrica{:,:}*100;
-
-% msWindEurope = Europe{Europe.Sector == sector,4:6}./Europe{Europe.Sector == baseSector,4:6}*100;
 figure;
 msE = plot(WindInEurope.Year, msWindEurope, 'LineWidth',2);
 set(msE, {'LineStyle'}, {'-';'--';':'})
