@@ -1,3 +1,0 @@
-function LaunchIIASAExplorer
-IIASADataExplorer();
-end

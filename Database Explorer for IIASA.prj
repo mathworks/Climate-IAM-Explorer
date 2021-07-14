@@ -1,14 +1,14 @@
 <deployment-project plugin="plugin.toolbox" plugin-version="1.0">
   <configuration file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Database Explorer for IIASA.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Database Explorer for IIASA" target="target.toolbox" target-name="Package Toolbox">
-    <param.appname>Database Explorer for IIASA</param.appname>
+    <param.appname>Climate IAM Explorer</param.appname>
     <param.authnamewatermark>Eduard Benet</param.authnamewatermark>
     <param.email>ebenetce@mathworks.com</param.email>
     <param.company>MathWorks</param.company>
-    <param.summary>Database Explorer for IIASA</param.summary>
-    <param.description>This toolbox includes a set of functions to access the various datasets hosted by IIASA. There is also a MATLAB App to facilitate the visualization of these datasets.</param.description>
+    <param.summary>Climate IAM Explorer</param.summary>
+    <param.description>This repository contains a set of tools to allow users explore integrated assesmemnt models and some examples showcasing how one can use this information in conjuntion to financial applications. The models accessible by the tool include the different datasets hosted by the IIASA Energy program (ENE), but it is extensible to your own custom models.</param.description>
     <param.screenshot />
-    <param.version>1.0.1</param.version>
-    <param.output>${PROJECT_ROOT}\Database Explorer for IIASA.mltbx</param.output>
+    <param.version>1.2</param.version>
+    <param.output>${PROJECT_ROOT}\Climate IAM Explorer.mltbx</param.output>
     <param.products.name>
       <item>MATLAB</item>
     </param.products.name>
@@ -26,7 +26,7 @@
     <param.demosxml />
     <param.apps />
     <param.registered.apps>
-      <file>${PROJECT_ROOT}\tbx\app\IIASADataExplorer.mlapp</file>
+      <file>${PROJECT_ROOT}\tbx\+iam\DataExplorer.mlapp</file>
     </param.registered.apps>
     <param.docs />
     <param.getting.started.guide>${PROJECT_ROOT}\tbx\doc\GettingStarted.mlx</param.getting.started.guide>
@@ -81,6 +81,7 @@
       <file>${PROJECT_ROOT}\tbx</file>
     </fileset.rootdir>
     <fileset.rootfiles>
+      <file>${PROJECT_ROOT}\tbx\+iam</file>
       <file>${PROJECT_ROOT}\tbx\+iiasa</file>
       <file>${PROJECT_ROOT}\tbx\app</file>
       <file>${PROJECT_ROOT}\tbx\DesktopToolset.xml</file>
@@ -91,7 +92,7 @@
     <fileset.depfun.excluded />
     <fileset.package />
     <build-deliverables>
-      <file location="${PROJECT_ROOT}" name="Database Explorer for IIASA.mltbx" optional="false">C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Database Explorer for IIASA.mltbx</file>
+      <file location="${PROJECT_ROOT}" name="Climate IAM Explorer.mltbx" optional="false">C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.mltbx</file>
     </build-deliverables>
     <workflow />
     <matlab>
