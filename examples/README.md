@@ -239,7 +239,7 @@ xlim([datetime(2005,1,1) datetime(2050,1,1)])
 
 Knowing the market share, we can then compute the shocks as the difference arising from the transition from a base scenario to a specific set of policies, i.e.:
 
-        <img src="https://latex.codecogs.com/gif.latex?u_{(WIND\;,EUROPE)}&space;\left(P\right)=\frac{m_{(WIND\;,EUROPE)}&space;\left(P\right)-m_{(WIND\;,EUROPE)}&space;\left(B\right)}{m_{(WIND\;,EUROPE)}&space;\left(B\right)}"/>
+<img src="https://latex.codecogs.com/svg.image?u_{(WIND\;,&space;EUROPE)}\left(P\right)=&space;\frac{m_{(WIND\;,&space;EUROPE)}\left(P\right)&space;-&space;m_{(WIND\;,&space;EUROPE)}\left(B\right)&space;}{m_{(WIND\;,&space;EUROPE)}\left(B\right)&space;}" title="u_{(WIND\;, EUROPE)}\left(P\right)= \frac{m_{(WIND\;, EUROPE)}\left(P\right) - m_{(WIND\;, EUROPE)}\left(B\right) }{m_{(WIND\;, EUROPE)}\left(B\right) }" />
 
 and if we plot them together we obtain:
 
