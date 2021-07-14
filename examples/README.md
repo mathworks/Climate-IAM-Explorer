@@ -14,15 +14,9 @@ Table of Contents
 
 # Introduction
 
-This section illustrates an example of calculation of climate financial risk, focusing on energy infrastructure loans, extracted from \hyperref{M_F58CDA55}{**Monasterolo et al. 2018**}. The work demonstrates how one can calculate climate policy shocks based on forward-looking trajectories of market shares of energy sectors, by type of technology in fossil fuels and renewable energy, derived by Integrated Assessment Models (IAMs). It then shows how to assess the order of magnitude of changes in value of each bank’s loan, conditional upon a climate policy shock. The analysis is applied to Chinese development banks’ energy infrastructure loans.
-
-
-
+This section illustrates an example of calculation of climate financial risk, focusing on energy infrastructure loans, extracted from [**Monasterolo et al. 2018**][1]. The work demonstrates how one can calculate climate policy shocks based on forward-looking trajectories of market shares of energy sectors, by type of technology in fossil fuels and renewable energy, derived by Integrated Assessment Models (IAMs). It then shows how to assess the order of magnitude of changes in value of each bank’s loan, conditional upon a climate policy shock. The analysis is applied to Chinese development banks’ energy infrastructure loans.
 
 This work is part of a broader stream of research on climate mitigation scenarios and financial risk, discussed in the 2021 Science article by \hyperref{M_3DDFF708}{**Battiston et al. 2021**}**.**In particular, it can be applied to the climate scenarios of orderly and disorderly transition developed by the Network for Greening the Financial System (\hyperref{M_74321760}{**NGFS 2020**}).
-
-
-
 
 The approach of connecting IAM scenarios to financial shocks was first introduced in \hyperref{M_835CB8B9}{**Battiston et al. 2017**} which developed the general framework to compute: (i) shocks on the value of financial assets (equity holdings, bonds and loans), (ii) financial risk metrics, such as the Climate Value at Risk, and (iii) direct and indirect losses for portfolios of individual financial institutions. This approach can be used for Climate Stress test exercises where indirect losses are computed based on financial network models. This framework has been applied to supervisory data, covering bank loans and investment funds’ holdings in \hyperref{M_61EF456C}{**Roncoroni et al. 2021 **}in collaboration with the Central Bank of Mexico.
 
@@ -85,7 +79,7 @@ Similarly, the climate data for the article of this example was obtained using [
 
 ```matlab:Code
 format bank
-c = iam.data.LIMITSconnection('./examples/LIMITSPUBLIC_2014-10-13.csv');
+c = iam.data.LIMITSconnection('./LIMITSPUBLIC_2014-10-13.csv');
 ```
 
 ```matlab:Code
@@ -361,12 +355,12 @@ Value adjusted at 2030 is: 116.4752
 
 # References
 
-Battiston, S., Mandel, A., Monasterolo, I., Schütze, F., and Visentin, G., **A climate stress-test of the financial system**. *Nature Clim Change 7,*** **283–288 (2017). [https://doi.org/doi:10.1038/nclimate3255](https://protect-us.mimecast.com/s/UYJpC73M7jTLEmM9s8O3Te?domain=doi.org)
+[1]: Battiston, S., Mandel, A., Monasterolo, I., Schütze, F., and Visentin, G., **A climate stress-test of the financial system**. *Nature Clim Change 7,*** **283–288 (2017). [https://doi.org/doi:10.1038/nclimate3255](https://protect-us.mimecast.com/s/UYJpC73M7jTLEmM9s8O3Te?domain=doi.org)
 
-Battiston, S., Monasterolo, I., Riahi, K., \& van Ruijven, B. (2021). **Climate mitigation pathways need to account for the ambivalent role of finance**. *Science*, 28 May 2021, 10.1126/science.abf3877. https://science.sciencemag.org/content/early/2021/05/19/science.abf3877
+[2]: Battiston, S., Monasterolo, I., Riahi, K., \& van Ruijven, B. (2021). **Climate mitigation pathways need to account for the ambivalent role of finance**. *Science*, 28 May 2021, 10.1126/science.abf3877. https://science.sciencemag.org/content/early/2021/05/19/science.abf3877
 
-Monasterolo, I., Zheng, Jiani I., and Battiston, S., **Climate Transition Risk and Development Finance: An Assessment of China's Overseas Energy Investments Portfolio**. *China and the World Economy*, *26*, *6*(116–142) (2018). [https://doi.org/10.1111/cwe.12264](https://doi.org/10.1111/cwe.12264)
+[3]: Monasterolo, I., Zheng, Jiani I., and Battiston, S., **Climate Transition Risk and Development Finance: An Assessment of China's Overseas Energy Investments Portfolio**. *China and the World Economy*, *26*, *6*(116–142) (2018). [https://doi.org/10.1111/cwe.12264](https://doi.org/10.1111/cwe.12264)
 
-NGFS. (2020). NGFS - Network for Greening the Financial System - **Guide to climate scenario analysis for central banks and supervisors 2020**, https://www.ngfs.net/sites/default/files/medias/documents/ngfs_guide_scenario_analysis_final.pdfRoncoroni, A., Battiston, S. Escobar-Farfán, LOL., and Martinez-Jaramillo, S., **Climate risk and financial stability in the network of banks and investment funds**. *Journal of Financial Stability* 54 (2021): 100870. [https://doi.org/10.1016/j.jfs.2021.100870](https://doi.org/10.1016/j.jfs.2021.100870)
+[4]: NGFS. (2020). NGFS - Network for Greening the Financial System - **Guide to climate scenario analysis for central banks and supervisors 2020**, https://www.ngfs.net/sites/default/files/medias/documents/ngfs_guide_scenario_analysis_final.pdfRoncoroni, A., Battiston, S. Escobar-Farfán, LOL., and Martinez-Jaramillo, S., **Climate risk and financial stability in the network of banks and investment funds**. *Journal of Financial Stability* 54 (2021): 100870. [https://doi.org/10.1016/j.jfs.2021.100870](https://doi.org/10.1016/j.jfs.2021.100870)
 
-Roncoroni, A., Battiston, S. Escobar-Farfán, LOL., and Martinez-Jaramillo, S., **Climate risk and financial stability in the network of banks and investment funds**. *Journal of Financial Stability* 54 (2021): 100870. [https://doi.org/10.1016/j.jfs.2021.100870](https://doi.org/10.1016/j.jfs.2021.100870)
+[5]: Roncoroni, A., Battiston, S. Escobar-Farfán, LOL., and Martinez-Jaramillo, S., **Climate risk and financial stability in the network of banks and investment funds**. *Journal of Financial Stability* 54 (2021): 100870. [https://doi.org/10.1016/j.jfs.2021.100870](https://doi.org/10.1016/j.jfs.2021.100870)
