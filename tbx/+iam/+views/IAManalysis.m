@@ -50,17 +50,20 @@ classdef IAManalysis < matlab.mixin.SetGetExactNames
             obj.AddButton.Layout.Row = 2;
             obj.AddButton.Layout.Column = 4;
             obj.AddButton.Text = 'Add';
+            obj.AddButton.Enable = false;
             
             % Create VarNameField
             obj.VarNameField = uieditfield(obj.MainGridLayout, 'text');
             obj.VarNameField.Layout.Row = 2;
             obj.VarNameField.Layout.Column = 1;
             obj.VarNameField.Value = 'myVar';
+            obj.VarNameField.Enable = false;
             
             % Create FormulaField
             obj.FormulaField = uieditfield(obj.MainGridLayout, 'text');
             obj.FormulaField.Layout.Row = 2;
             obj.FormulaField.Layout.Column = 3;
+            obj.FormulaField.Enable = false;
             
             % Create EqualSign
             obj.EqualSign = uilabel(obj.MainGridLayout);
