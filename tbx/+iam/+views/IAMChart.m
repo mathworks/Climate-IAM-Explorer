@@ -6,6 +6,7 @@ classdef IAMChart < matlab.mixin.SetGet
         GridLayout
         LegendDropDown
         ChartTypeDropDown
+        Label
     end
     
 %     properties
@@ -68,6 +69,8 @@ classdef IAMChart < matlab.mixin.SetGet
             lb.Layout.Column = 1;
             lb.Text = 'Chart type';
             lb.HorizontalAlignment = 'right';
+            obj.Label = lb;
+            
         end
         
         function changeData(obj, data, varargin)
