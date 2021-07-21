@@ -181,7 +181,7 @@ xlabel('Year')
 title('Net Electricity Production From Coal')
 ```
 
-![figure_0.png](LoanPortfolioStressTesting_images/figure_0.png)
+![figure_0.png](LoanPortfolioClimateStressTesting_images/figure_0.png)
 
 Knowing the market share, we can then compute the market share shocks as the difference arising from the transition from a business-as-usual scenario (B), characterized by no climate policy, to scenario P:
 
@@ -213,7 +213,7 @@ title("Electricity Production From Coal in Africa")
 lg.Location = "eastoutside";
 ```
 
-![figure_1.png](LoanPortfolioStressTesting_images/figure_1.png)
+![figure_1.png](LoanPortfolioClimateStressTesting_images/figure_1.png)
 
 ### Wind in Europe
 
@@ -241,7 +241,7 @@ legend("LIMITS - Base", "LIMITS - RefPol500", "LIMITS - StrPol450",'Location','b
 xlim([datetime(2005,1,1) datetime(2050,1,1)])
 ```
 
-![figure_2.png](LoanPortfolioStressTesting_images/figure_2.png)
+![figure_2.png](LoanPortfolioClimateStressTesting_images/figure_2.png)
 
 Knowing the market share, we can then compute the shocks as the difference arising from the transition from a base scenario to a specific set of policies, i.e.:
 
@@ -272,7 +272,7 @@ lg.Location = "eastoutside";
 ylim([0 300])
 ```
 
-![figure_3.png](LoanPortfolioStressTesting_images/figure_3.png)
+![figure_3.png](LoanPortfolioClimateStressTesting_images/figure_3.png)
 
 ### Application to any Region and Model
 
@@ -315,13 +315,13 @@ mainSectorIdx   = runList.Variable == "Secondary Energy|Electricity";
 plotMarketShare(ts, scenarioIdx, mainSectorIdx)
 ```
 
-![figure_4.png](LoanPortfolioStressTesting_images/figure_4.png)
+![figure_4.png](LoanPortfolioClimateStressTesting_images/figure_4.png)
 
 ## Results
 
 Once we have the market share shocks, we are in the position of computing the change in expected value of a loan. To match the results provided in the article, we have automated this process such that one can select a region, model, sector, scenario, and the calculator returns the expected value of a loan, given its Face Value <img src="https://latex.codecogs.com/gif.latex?\inline&space;F_{i,j}"/>
 
-![figure_5.png](LoanPortfolioStressTesting_images/figure_5.png)
+![figure_5.png](LoanPortfolioClimateStressTesting_images/figure_5.png)
 
 The change in expected value of the loan which we automatically evaluate at 2030 to match the results provided in Tables 3-6 of the article:
 
@@ -346,7 +346,7 @@ Finally, recall that we made the assumptions that
 
 which are easily incorporated into the model by defining a couple of constants:
 
-![figure_6.png](LoanPortfolioStressTesting_images/figure_6.png)
+![figure_6.png](LoanPortfolioClimateStressTesting_images/figure_6.png)
 
 that allow the users to evaluate the change in expected value using the extended model:
 
