@@ -5,7 +5,7 @@
 
 In this example we demonstrate a workflow for pricing weather derivatives based on historical observed temperature data. The actual code can be found at:
 
-[Climate-IAM-Explorer/examples at master · mathworks/Climate-IAM-Explorer (github.com)](https://github.com/mathworks/Climate-IAM-Explorer/blob/master/examples/Pricing%20Weather%20Derivatives/PricingWeatherDerivatives.mlx)
+[PricingWeatherDerivatives.mlx](https://github.com/mathworks/Climate-IAM-Explorer/blob/master/examples/Pricing%20Weather%20Derivatives/PricingWeatherDerivatives.mlx)
 
 Topics include:
 
