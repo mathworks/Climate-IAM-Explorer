@@ -153,13 +153,10 @@ plot(T.Year, T.Temp)
 
 # Load and process the observed temperature data
 
-
-For the rest of the analysis, we are going to use the following file containing temperatures from 1978 to the end of 2020 near Stockholm. You can obtain this data by using the code in the section above.
-
-
+For the rest of the analysis, we are going to use data containing temperatures from 1978 to the end of 2020 near Stockholm. You can obtain this data by using a code such as below:
 
 ```matlab:Code
-load( "SwedishTemperatures.mat" , 'T')
+T = getTemperatureData()
 head(T)
 ```
 
@@ -504,6 +501,26 @@ title( "Option price distribution" )
 
 
 ```matlab:Code
+
+function T = getTemperatureData()
+
+stationID = 'GHCND:SW000008525';
+countryID = 'FIPS:SW';
+years = 1978:2020;
+
+T = [];  Y = [];
+opts = weboptions('HeaderFields',{'token','***********************'});
+for year = years
+    data = webread('https://www.ncdc.noaa.gov/cdo-web/api/v2/data?datasetid=GHCND', opts, stationid = stationID, ...
+        datatypeid = 'TMAX', locationid = countryID, ...
+        startdate = year + "-01-01", enddate = year + "-12-31", limit = 1000, units = 'metric');
+    T = [T; [data.results(:).value]']; %#ok<AGROW> 
+    Y = [Y; datetime(vertcat(data.results(:).date))]; %#ok<AGROW> 
+end
+T = timetable(Y, T, 'VariableNames', "Temperature", 'DimensionNames', {'Date', 'Variable'});
+
+end
+
 function plotTemperature(T, Temp)
 
     T2 = synchronize(T, Temp);
@@ -521,47 +538,18 @@ end
 
 function determineSeasonality(Temp)
 
-```
+% We assume that the deterministic component of our model comprises a linear trend and seasonal terms. To estimate the main frequencies present in the time series, we apply the Fourier transform.
+% First, remove the linear trend by subtracting the best-fit line.
+% determineSeasonality(Temp)
 
-
-
-We assume that the deterministic component of our model comprises a linear trend and seasonal terms. To estimate the main frequencies present in the time series, we apply the Fourier transform.
-
-
-
-
-First, remove the linear trend by subtracting the best-fit line.
-
-
-
-
-determineSeasonality(Temp)
-
-
-
-```matlab:Code
 detrendedTemps = detrend( Temp.Temperature );
-```
 
-
-
-Next, use the [periodogram](matlab: doc periodogram) function to compute the spectrum. The sampling frequency is one observation per day.
-
-
-
-```matlab:Code
+% Next, use the periodogram function to compute the spectrum. The sampling frequency is one observation per day.
 numObs = length( detrendedTemps );
 Fs = 1;
 [pow, freq] = periodogram( detrendedTemps, [], numObs, Fs );
-```
 
-
-
-Visualize the spectrum.
-
-
-
-```matlab:Code
+% Visualize the spectrum.
 powdB = db( pow );
 figure
 plot( freq, powdB )
@@ -569,55 +557,25 @@ xlabel( "Frequency (days^{-1})" )
 ylabel( "Power (dB)" )
 title( "Detrended Temperatures Power Spectrum" )
 grid on
-```
 
-
-
-Identify the top two component frequencies and periods in the data.
-
-
-
-```matlab:Code
+%  Identify the top two component frequencies and periods in the data.
 [topPow, idx] = findpeaks( powdB, "NPeaks", 2, ...
     "SortStr", "descend", ...
     "MinPeakProminence", 20 );
 topFreq = freq(idx);
 topPeriods = 1 ./ topFreq;
-```
 
-
-
-Add them to the spectrum.
-
-
-
-```matlab:Code
+% Add them to the spectrum.
 hold on
 plot( topFreq, topPow, "r^", "MarkerFaceColor", "r" )
 xlim( [min( topFreq ) - 1e-3, max( topFreq ) + 1e-3] )
 legend( "Spectrum", "Top periods (days): " + join( string( topPeriods ), ", " ) )
-```
-
-
-
-We see that the dominant seasonal components in the data are the annual and 6-monthly cycles.
-
-
-
-```matlab:Code
+% We see that the dominant seasonal components in the data are the annual and 6-monthly cycles.
 
 end
 
 function trendModel = plotDeterministicTrend(Temp, trendModel, from, to)
-```
-
-
-
-Visualize the fitted trend.
-
-
-
-```matlab:Code
+% Visualize the fitted trend.
 figure;
 plot(Temp.Date, Temp.Temperature )
 xlabel( "Date" )
@@ -635,27 +593,8 @@ figure
 plot( Temp.Date, Temp.Temperature )
 hold on
 plot( simDates, simTemp )
-```
 
-
-
-Plot the path whose final value is nearest to the median of the final values.
-
-
-
-```matlab:Code
-finalMed = median( simTemp(end, :) );
-[~, idx] = min( abs( simTemp(end, :) - finalMed ) );
-% plot( simDates, simTemp(:, idx), "g", "LineWidth", 1.5 )
-```
-
-
-
-Plot the simulation percentiles.
-
-
-
-```matlab:Code
+% Plot the simulation percentiles.
 simPrc = prctile( simTemp, [2.5, 50, 97.5], 2 );
 plot( simDates, simPrc, "y", "LineWidth", 1.5 )
 xlim( [Temp.Date(end) - calyears( 1 ), simDates(end)] )
@@ -664,9 +603,20 @@ ylabel( "Temperature (" + char( 176 ) + "C)" )
 title( "Temperature Simulation" )
 grid on
 
-load OrgTemp.mat T
+% Get Data for 2021
+T = [];  Y = [];
+opts = weboptions('HeaderFields',{'token','***********************'});
+year = 2021;
+data = webread('https://www.ncdc.noaa.gov/cdo-web/api/v2/data?datasetid=GHCND', opts, stationid = 'GHCND:SW000008525', ...
+    datatypeid = 'TMAX', locationid = 'FIPS:SW', ...
+    startdate = year + "-01-01", enddate = year + "-12-31", limit = 1000, units = 'metric');
+T = [T; [data.results(:).value]'];
+Y = [Y; datetime(vertcat(data.results(:).date))];
+T = timetable(Y, T, 'VariableNames', ["Temperature"], 'DimensionNames', {'Date', 'Variable'});
+
 plot( T.Date,  T.Temperature, "g", "LineWidth", 1.5 )
 
 end
+
 ```
 
