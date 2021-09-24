@@ -3,22 +3,11 @@
 
 **Ken Deeley and Edu Benet Cerda, MathWorks**
 
+In this example we demonstrate a workflow for pricing weather derivatives based on historical observed temperature data. The actual code can be found at:
 
-
-
-This script demonstrates a workflow for pricing weather derivatives based on historical observed temperature data. The actual code can be found at:
-
-
-
-
-[Climate-IAM-Explorer/examples at master · mathworks/Climate-IAM-Explorer (github.com)](https://github.com/mathworks/Climate-IAM-Explorer/tree/master/examples)
-
-
-
+[Climate-IAM-Explorer/examples at master · mathworks/Climate-IAM-Explorer (github.com)](https://github.com/mathworks/Climate-IAM-Explorer/blob/master/examples/Pricing%20Weather%20Derivatives/PricingWeatherDerivatives.mlx)
 
 Topics include:
-
-
 
    -  Estimating deterministic trends in a time series 
    -  Analysis of seasonality 
@@ -26,8 +15,6 @@ Topics include:
    -  Assessing the goodness-of-fit of a model 
    -  Performing Monte Carlo simulation from a model 
    -  Pricing financial instruments 
-
-
 
 The techniques used in this example are based on the approach described in the paper:
 
@@ -498,125 +485,3 @@ title( "Option price distribution" )
 
 
 ![figure_6.png](PricingWeatherDerivatives_images/figure_6.png)
-
-
-```matlab:Code
-
-function T = getTemperatureData()
-
-stationID = 'GHCND:SW000008525';
-countryID = 'FIPS:SW';
-years = 1978:2020;
-
-T = [];  Y = [];
-opts = weboptions('HeaderFields',{'token','***********************'});
-for year = years
-    data = webread('https://www.ncdc.noaa.gov/cdo-web/api/v2/data?datasetid=GHCND', opts, stationid = stationID, ...
-        datatypeid = 'TMAX', locationid = countryID, ...
-        startdate = year + "-01-01", enddate = year + "-12-31", limit = 1000, units = 'metric');
-    T = [T; [data.results(:).value]']; %#ok<AGROW> 
-    Y = [Y; datetime(vertcat(data.results(:).date))]; %#ok<AGROW> 
-end
-T = timetable(Y, T, 'VariableNames', "Temperature", 'DimensionNames', {'Date', 'Variable'});
-
-end
-
-function plotTemperature(T, Temp)
-
-    T2 = synchronize(T, Temp);
-    figure
-    plot( Temp.Date, Temp.Temperature )
-    hold on;
-    xlabel( "Date" )
-    ylabel( "Temperature (" + char( 176 ) + "C)" )
-    title( "Daily Temperatures" )
-    grid on
-    miss = T2(isnan(T2.Temperature_T),:);
-    plot(miss.Date, miss.Temperature_Temp, 'ro','linewidth',2)
-
-end
-
-function determineSeasonality(Temp)
-
-% We assume that the deterministic component of our model comprises a linear trend and seasonal terms. To estimate the main frequencies present in the time series, we apply the Fourier transform.
-% First, remove the linear trend by subtracting the best-fit line.
-% determineSeasonality(Temp)
-
-detrendedTemps = detrend( Temp.Temperature );
-
-% Next, use the periodogram function to compute the spectrum. The sampling frequency is one observation per day.
-numObs = length( detrendedTemps );
-Fs = 1;
-[pow, freq] = periodogram( detrendedTemps, [], numObs, Fs );
-
-% Visualize the spectrum.
-powdB = db( pow );
-figure
-plot( freq, powdB )
-xlabel( "Frequency (days^{-1})" )
-ylabel( "Power (dB)" )
-title( "Detrended Temperatures Power Spectrum" )
-grid on
-
-%  Identify the top two component frequencies and periods in the data.
-[topPow, idx] = findpeaks( powdB, "NPeaks", 2, ...
-    "SortStr", "descend", ...
-    "MinPeakProminence", 20 );
-topFreq = freq(idx);
-topPeriods = 1 ./ topFreq;
-
-% Add them to the spectrum.
-hold on
-plot( topFreq, topPow, "r^", "MarkerFaceColor", "r" )
-xlim( [min( topFreq ) - 1e-3, max( topFreq ) + 1e-3] )
-legend( "Spectrum", "Top periods (days): " + join( string( topPeriods ), ", " ) )
-% We see that the dominant seasonal components in the data are the annual and 6-monthly cycles.
-
-end
-
-function trendModel = plotDeterministicTrend(Temp, trendModel, from, to)
-% Visualize the fitted trend.
-figure;
-plot(Temp.Date, Temp.Temperature )
-xlabel( "Date" )
-ylabel( "Temperature (" + char( 176 ) + "C)" )
-title( "Daily Temperatures" )
-grid on
-hold on
-plot( Temp.Date, trendModel.Fitted, "LineWidth", 2 )
-plot(Temp.Date,6.06+0.038*year(Temp.Date - Temp.Date(1)),'k--','LineWidth',2)
-xlim([datetime(from,1,1), datetime(to,12,31)])
-end
-
-function visualizeScenarios(Temp, simTemp, simDates)
-figure
-plot( Temp.Date, Temp.Temperature )
-hold on
-plot( simDates, simTemp )
-
-% Plot the simulation percentiles.
-simPrc = prctile( simTemp, [2.5, 50, 97.5], 2 );
-plot( simDates, simPrc, "y", "LineWidth", 1.5 )
-xlim( [Temp.Date(end) - calyears( 1 ), simDates(end)] )
-xlabel( "Date" )
-ylabel( "Temperature (" + char( 176 ) + "C)" )
-title( "Temperature Simulation" )
-grid on
-
-% Get Data for 2021
-T = [];  Y = [];
-opts = weboptions('HeaderFields',{'token','***********************'});
-year = 2021;
-data = webread('https://www.ncdc.noaa.gov/cdo-web/api/v2/data?datasetid=GHCND', opts, stationid = 'GHCND:SW000008525', ...
-    datatypeid = 'TMAX', locationid = 'FIPS:SW', ...
-    startdate = year + "-01-01", enddate = year + "-12-31", limit = 1000, units = 'metric');
-T = [T; [data.results(:).value]'];
-Y = [Y; datetime(vertcat(data.results(:).date))];
-T = timetable(Y, T, 'VariableNames', ["Temperature"], 'DimensionNames', {'Date', 'Variable'});
-
-plot( T.Date,  T.Temperature, "g", "LineWidth", 1.5 )
-
-end
-
-```
-
