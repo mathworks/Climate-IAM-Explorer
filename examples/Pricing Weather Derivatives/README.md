@@ -209,13 +209,13 @@ plotTemperature(T, Temp)
 
 ![figure_1.png](PricingWeatherDerivatives_images/figure_1.png)
 
-# Model temperature
+# Modeling the temperature
 
-   \item{ \hyperref{H_573B26C7}{Determine the seasonality in the data} }
-   \item{ \hyperref{H_C39548C2}{Fit the deterministic trend} }
-   \item{ \hyperref{H_E6C24577}{Analyze and fit model residuals} }
-   \item{ \hyperref{H_205669C7}{Simulate future temperature scenarios} }
-   \item{ \hyperref{H_FD937C9C}{Pricing Weather derivatives} }
+   - Determine the seasonality in the data
+   - Fit the deterministic trend
+   - Analyze and fit model residuals
+   - Simulate future temperature scenarios
+   - Pricing Weather derivatives
 
 # Determine the seasonality in the data.
 
