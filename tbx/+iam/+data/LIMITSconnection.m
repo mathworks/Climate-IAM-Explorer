@@ -15,6 +15,8 @@ classdef LIMITSconnection < iam.data.Connection
         Config struct = struct( ...
             'name', "LIMITS", 'env', "limits",'productName', "LIMITS", ...
             'database', "LIMITS", "welcome", "Welcome to the LIMITS Database");
+        
+        ConnectionProperties
     end
     
     properties (Constant, Access = private)

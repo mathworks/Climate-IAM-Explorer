@@ -15,6 +15,11 @@ classdef IIASAconnection < iam.data.Connection
         Config struct = struct( ...
             'name', {}, 'scheme', {}, 'env', {},'productName', {}, ...
             'uiUrl', {}, 'authUrl', {}, 'baseUrl', {}, 'database', {});
+        
+        ConnectionProperties = matlab.net.http.HTTPOptions( ...
+            'ConnectTimeout', 40, ...
+            'Debug', 0, ...
+            'ProgressMonitorFcn', @iam.views.RequestProgressMonitor)
     end
     
     properties (Access = private)
@@ -267,6 +272,12 @@ classdef IIASAconnection < iam.data.Connection
             
         end
         
+        function setConnectionOptions(obj, name, value)
+                     
+            obj.ConnectionProperties.(name) = value;
+            
+        end
+        
     end
     
     methods % Accessors
@@ -408,7 +419,7 @@ classdef IIASAconnection < iam.data.Connection
             rm = RequestMessage('post', [hf1, hf2, hf3]);
             rm.Body = mb;
             
-            rsp = rm.send(url);
+            rsp = rm.send(url, obj.ConnectionProperties);
             
             if rsp.StatusCode == "OK"
                 response = rsp.Body.Data;
@@ -421,10 +432,26 @@ classdef IIASAconnection < iam.data.Connection
         
         function res = getRequest(obj, url, varargin)
             
-            headerFields = {'Authorization', ['Bearer ', obj.AuthToken]};
-            options = weboptions('HeaderFields', headerFields, 'RequestMethod', 'get', 'MediaType', 'application/json', 'Timeout', 40, varargin{:});
+            import matlab.net.*;
+            import matlab.net.http.*;
+            import matlab.net.http.field.*;
+            import matlab.net.http.io.*;
             
-            res = webread(url, options);
+            mt = MediaType('application/json');
+            
+            hf1 = ContentTypeField(mt);
+            hf2 = HeaderField('Authorization',['Bearer ', obj.AuthToken]);
+            hf3 = AcceptField(mt);
+            
+            rm = RequestMessage('get', [hf1, hf2, hf3]);
+            
+            rsp = rm.send(url, obj.ConnectionProperties);
+            
+            if rsp.StatusCode == "OK"
+                res = rsp.Body.Data;
+            else
+                error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
+            end
             
         end
         
