@@ -450,7 +450,7 @@ classdef IIASAconnection < iam.data.Connection
             if rsp.StatusCode == "OK"
                 res = rsp.Body.Data;
             else
-                error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
+                error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data.errorMessage)
             end
             
         end
