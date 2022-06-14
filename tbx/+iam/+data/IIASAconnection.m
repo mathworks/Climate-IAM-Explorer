@@ -323,7 +323,7 @@ classdef IIASAconnection < iam.data.Connection
                 input = struct('username',username,'password',password) ;
                 url = strjoin([obj.Auth_Url, "login"],"/");
                 try
-                    obj.AuthToken = obj.postRequest(url, input) ;
+                    obj.AuthToken = webwrite(url, input) ;
                     obj.Authorize = true ;
                 catch
                     obj.Authorize = false ;
