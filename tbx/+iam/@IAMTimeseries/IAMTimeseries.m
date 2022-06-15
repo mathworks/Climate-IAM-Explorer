@@ -35,6 +35,8 @@ classdef IAMTimeseries
                     obj(i).Variable = data.variable;
                     obj(i).Region = data.region;
                     obj(i).Unit = data.unit;
+                    obj(i).RunId = data.runId;
+                    obj(i).Version = data.version;
                     obj(i).Years = data.years;
                     obj(i).Values = data.values;
                 end

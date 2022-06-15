@@ -135,7 +135,7 @@ classdef IIASAconnection < iam.data.Connection
             if ~isempty(response)
                 tb = struct2table(response);
                 
-                vars = {'model', 'scenario', 'variable', 'region', 'unit'};
+                vars = {'runId', 'model', 'scenario', 'variable', 'region', 'unit'};
                 
                 current = 1;
                 num = 1;
