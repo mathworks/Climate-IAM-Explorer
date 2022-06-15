@@ -9,7 +9,7 @@ classdef IAMTimeseries
         Region   (1,1) string
         Unit     (1,1) string
         RunId    (1,1) double
-        Version  (1,1) double
+        Version  (:,1) double
         Years    (:,1) double
         Values   (:,:) timetable
     end
