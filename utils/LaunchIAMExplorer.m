@@ -1,3 +1,0 @@
-function LaunchIAMExplorer
-IAMDataExplorer();
-end
