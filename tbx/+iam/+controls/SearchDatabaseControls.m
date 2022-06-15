@@ -39,13 +39,19 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         function obj = SearchDatabaseControls(varargin)
             
-            g1 = uigridlayout([1 2], varargin{:},'ColumnWidth',{'1x','1x','1x','0x','3x'}, 'RowHeight', {'1x', '2x', '0.2x'});
+            g1 = uigridlayout([1 2], varargin{:},'ColumnWidth',{'1x','1x','1x','0x','3x'}, 'RowHeight', {'1x', '2x', '0.2x'}, 'Backgroundcolor', [0.23,0.29,0.22]);
             obj.MainGridLayout = g1;
             
             % Set Search Database Tab axis
             SDAx = iam.views.IAMChart('Parent',g1);
             SDAx.GridLayout.Layout.Row = [1 3];
             SDAx.GridLayout.Layout.Column = 5;
+            SDAx.GridLayout.BackgroundColor = [0.23,0.29,0.22];
+            SDAx.UIAxes.XColor = 'w';
+            SDAx.UIAxes.YColor = 'w';
+            SDAx.UIAxes.GridColor = 'k';   
+            SDAx.CheckBox.FontColor = 'w';
+            SDAx.Label.FontColor = 'w';
             
             obj.SearchAxes = SDAx;
             
@@ -76,15 +82,15 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             
             % Create InputvaluesseparatedbysemicolonsPanel
             p1 = uipanel(g1);
-            p1.Title = 'Input values separated by semicolons';
+%             p1.Title = 'Input values separated by semicolons';
             p1.Layout.Row = 1;
             p1.Layout.Column = [1 3];
             
             % Create GridLayout26
-            g4 = uigridlayout(p1);
+            g4 = uigridlayout(p1, 'BackgroundColor',[0.61,0.81,0.57]);
             g4.ColumnWidth = {'2x', '10x', '2x', '1x'};
             g4.RowHeight = {'1x', '1x', '1x', '1x'};
-            g4.Padding = [0 0 0 0];
+            g4.Padding = [5 5 5 5];
             obj.InputsGrid = g4;
             
             % Create Button
@@ -183,7 +189,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             label.Text = text;
             
             % Create VariableEditField
-            ef = uieditfield(obj.InputsGrid, 'text');
+            ef = uieditfield(obj.InputsGrid, 'text', Placeholder = 'Value1; Value2; ...; ValueN');
             ef.Layout.Row = row;
             ef.Layout.Column = col + 1;
             
@@ -199,6 +205,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             cb.Text = text;
             cb.Layout.Row = row;
             cb.Layout.Column = col;
+            cb.Value = true;
             
             obj.GenericStrictCheckbox(row) = cb;
         end
