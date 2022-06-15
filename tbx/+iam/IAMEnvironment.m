@@ -35,6 +35,10 @@ classdef IAMEnvironment < matlab.mixin.SetGet
         function value = get.Environment(obj)
             value = obj.Connection.Environment;
         end
+
+        function reloadEnvironment(obj)
+            obj.setEnvironment();
+        end
         
         function changeEnvironment(obj, value)
             obj.Connection.Environment = value;

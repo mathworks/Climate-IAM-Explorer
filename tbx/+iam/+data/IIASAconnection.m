@@ -247,9 +247,11 @@ classdef IIASAconnection < iam.data.Connection
             
             response = obj.getRequest(url);
             
+            runs = table('Size', [0, 2], 'VariableTypes', ["string", "string"], 'VariableNames',["model", "scenario"]);
             if ~isempty(response)
                 runs = struct2table(response);
             end
+                
             
         end
         
