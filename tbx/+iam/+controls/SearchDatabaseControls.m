@@ -205,7 +205,6 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             cb.Text = text;
             cb.Layout.Row = row;
             cb.Layout.Column = col;
-            cb.Value = true;
             
             obj.GenericStrictCheckbox(row) = cb;
         end
