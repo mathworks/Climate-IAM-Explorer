@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.toolbox" plugin-version="1.0">
-  <configuration file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Database Explorer for IIASA.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Database Explorer for IIASA" target="target.toolbox" target-name="Package Toolbox">
+  <configuration file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Climate IAM Explorer" target="target.toolbox" target-name="Package Toolbox">
     <param.appname>Climate IAM Explorer</param.appname>
     <param.authnamewatermark>Eduard Benet</param.authnamewatermark>
     <param.email>ebenetce@mathworks.com</param.email>
@@ -16,7 +16,7 @@
       <item>1</item>
     </param.products.id>
     <param.products.version>
-      <item>9.10</item>
+      <item>9.12</item>
     </param.products.version>
     <param.platforms />
     <param.guid>5ed2c037-ac9c-4feb-8032-469d0a2b0285</param.guid>
@@ -82,6 +82,7 @@
     </fileset.rootdir>
     <fileset.rootfiles>
       <file>${PROJECT_ROOT}\tbx\+iam</file>
+      <file>${PROJECT_ROOT}\tbx\+isimip</file>
       <file>${PROJECT_ROOT}\tbx\app</file>
       <file>${PROJECT_ROOT}\tbx\DesktopToolset.xml</file>
       <file>${PROJECT_ROOT}\tbx\doc</file>
@@ -94,21 +95,15 @@
     </build-deliverables>
     <workflow />
     <matlab>
-      <root>C:\Program Files\MATLAB\R2021a</root>
+      <root>C:\Program Files\MATLAB\R2022a</root>
       <toolboxes>
         <toolbox name="matlabcoder" />
-        <toolbox name="gpucoder" />
         <toolbox name="neuralnetwork" />
       </toolboxes>
       <toolbox>
         <matlabcoder>
           <enabled>true</enabled>
         </matlabcoder>
-      </toolbox>
-      <toolbox>
-        <gpucoder>
-          <enabled>true</enabled>
-        </gpucoder>
       </toolbox>
       <toolbox>
         <neuralnetwork>
