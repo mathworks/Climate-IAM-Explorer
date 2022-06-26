@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.toolbox" plugin-version="1.0">
-  <configuration file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Climate IAM Explorer" target="target.toolbox" target-name="Package Toolbox">
+  <configuration build-checksum="1386224550" file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Climate IAM Explorer" target="target.toolbox" target-name="Package Toolbox">
     <param.appname>Climate IAM Explorer</param.appname>
     <param.authnamewatermark>Eduard Benet</param.authnamewatermark>
     <param.email>ebenetce@mathworks.com</param.email>
@@ -7,7 +7,7 @@
     <param.summary>Climate IAM Explorer</param.summary>
     <param.description>This repository contains a set of tools to allow users explore integrated assesmemnt models and some examples showcasing how one can use this information in conjuntion to financial applications. The models accessible by the tool include the different datasets hosted by the IIASA Energy program (ENE), but it is extensible to your own custom models.</param.description>
     <param.screenshot />
-    <param.version>1.2</param.version>
+    <param.version>1.3</param.version>
     <param.output>${PROJECT_ROOT}\Climate IAM Explorer.mltbx</param.output>
     <param.products.name>
       <item>MATLAB</item>
@@ -36,7 +36,7 @@
     <param.required.addons />
     <param.matlab.project.id />
     <param.matlab.project.name />
-    <param.release.start>R2020a</param.release.start>
+    <param.release.start>R2021a</param.release.start>
     <param.release.end>latest</param.release.end>
     <param.release.current.only>false</param.release.current.only>
     <param.compatiblity.windows>true</param.compatiblity.windows>

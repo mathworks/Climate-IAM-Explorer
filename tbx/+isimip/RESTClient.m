@@ -31,14 +31,6 @@ classdef RESTClient
 
         end
 
-        %     function response =  parse_response(obj, response):
-        %         try:
-        %             response.raise_for_status()
-        %             return response.json()
-        %         except requests.exceptions.HTTPError as e:
-        %             print(response.content)
-        %             raise e
-        %
         function response = get(obj, url, varargin)
 
             response = webread(obj.Base_url + url, varargin{:}, obj.webopts);

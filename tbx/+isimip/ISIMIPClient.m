@@ -30,6 +30,47 @@ classdef ISIMIPClient
 
         end
 
+        function value = countries(obj)
+
+            value = obj.list("/countries");
+            value = struct2table(value);
+            value.key = string(value.key);
+            value.long_name = string(value.long_name);
+
+        end
+
+        function value = glossary(obj, varargin)
+
+            value = obj.list("/glossary", varargin{:});
+
+        end
+
+        function value = trees(obj, varargin)
+
+            value = obj.list("/tree", varargin{:});
+            value = struct2table(value);
+
+            value.identifier = string(value.identifier);
+            value.specifier = string(value.specifier);
+            value.tree = string(value.tree);
+
+        end
+
+        function value = resources(obj, varargin)
+
+            value = obj.list("/resources", varargin{:});
+
+        end
+
+        function value = facets(obj, varargin)
+
+            value = obj.list("/facets", varargin{:});
+            value = struct2table(value);
+            value.title = string(value.title);
+            value.attribute = string(value.attribute);
+
+        end
+
         function value = dataset(obj, pk, varargin)
 
             value = obj.retrieve("/datasets", pk, varargin{:});
@@ -73,24 +114,6 @@ classdef ISIMIPClient
 
             if nvp.validate
 
-                %                 json_url = url.rsplit('/', 1)[0] + '/' + file_name.with_suffix('.json').as_posix()
-                %             response = requests.get(json_url, headers=self.headers)
-                %             response.raise_for_status()
-                %             json_data = response.json()
-                %             remote_checksum, remote_path = json_data['checksum'], json_data['path']
-                %
-                %             # compute file checksum
-                %             m = hashlib.sha512()
-                %             with open(file_path, 'rb') as fp:
-                %                 # read and update in blocks of 64K
-                %                 for block in iter(lambda: fp.read(65536), b''):
-                %                     m.update(block)
-                %             checksum = m.hexdigest()
-                %
-                %             assert remote_path.endswith(file_name.as_posix())
-                %             assert remote_checksum == checksum, f'Checksum {checksum} != {remote_checksum}'
-                %
-
             end
 
             if file_ext == ".zip" && nvp.extract
@@ -105,7 +128,7 @@ classdef ISIMIPClient
             arguments
                 obj
                 paths string
-                bbox 
+                bbox
                 nvp.poll = []
             end
 
@@ -267,7 +290,7 @@ classdef ISIMIPClient
             addParameter(p, 'list_route',   string.empty())
             addParameter(p, 'nested_route', string.empty())
             addParameter(p, 'detail_route', string.empty())
-            
+
             p.parse(resource_url, varargin{:});
             unmatched =  namedargs2cell(p.Unmatched);
 
