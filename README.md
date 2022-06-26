@@ -38,7 +38,7 @@ The app will load the NGFS scenario by default, but this can be changed at will.
 
 Programatically, the connection to the IIASA database can be created with a default selected scenario or completely empty. To connect to a specific scenario, please select the product name (e.g. "IXSE_NGFS"), the scheme (e.g. "IXMP Scenario Explorer SPA UI"), the environment (e.g. "ngfs"), or the product name (e.g. "NGFS Scenario Explorer"). For example:
 
-    c = iam.IIASAConnection('ngfs');
+    c = iam.data.IIASAConnection('ngfs');
 
 At any point in time, a user can view all the available environments in the database:
 
