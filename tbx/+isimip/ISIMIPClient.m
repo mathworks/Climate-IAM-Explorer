@@ -18,6 +18,8 @@ classdef ISIMIPClient
 
             if isempty(nvp.restClient)
                 obj.restClient = isimip.RESTClient(nvp.data_url, nvp.files_api_url, nvp.auth, nvp.headers);
+            else
+                obj.restClient = nvp.restClient;
             end
 
         end
@@ -223,8 +225,8 @@ classdef ISIMIPClient
 
         function value = list(obj, resource_url, varargin)
 
-            url = obj.build_url(resource_url, varargin{:});
-            value = obj.restClient.get(url, varargin{:});
+            [url, unmatched] = obj.build_url(resource_url, [], varargin{:});
+            value = obj.restClient.get(url, unmatched{:});
 
         end
 
@@ -249,32 +251,46 @@ classdef ISIMIPClient
 
         end
 
-        function value = destroy(obj, resource_url, pk, varargin)
+        function value = destroy(obj, resource_url, varargin)
 
             url = obj.build_url(resource_url, pk, varargin{:});
             value = obj.restClient.delete(url, pk);
 
         end
 
-        function url = build_url(obj, resource_url, pk, varargin)
+        function [url, unmatched] = build_url(obj, resource_url, varargin)
 
-            url = resource_url;
+            p = inputParser;
+            p.KeepUnmatched = true;
+            addRequired(p, 'resource_url')
+            addRequired(p, 'pk')
+            addParameter(p, 'list_route',   string.empty())
+            addParameter(p, 'nested_route', string.empty())
+            addParameter(p, 'detail_route', string.empty())
+            
+            p.parse(resource_url, varargin{:});
+            unmatched =  namedargs2cell(p.Unmatched);
 
-            %         url = resource_url.rstrip('/') + '/'
-            %
-            %         if 'list_route' in kwargs:
-            %             url += kwargs.pop('list_route').rstrip('/') + '/'
-            %         elif 'nested_route' in kwargs:
-            %             url += '%s/' % kwargs.pop('parent_pk')
-            %             url += kwargs.pop('nested_route').rstrip('/') + '/'
-            %
-            %         if pk:
-            %             url += '%s/' % pk
-            %
-            %         if 'detail_route' in kwargs:
-            %             url += kwargs.pop('detail_route').rstrip('/') + '/'
-            %
-            %         return url
+
+            resource_url = p.Results.resource_url;
+            pk = p.Results.pk;
+
+            url = strip(resource_url, 'right', '/')  + "/";
+
+            if ~isempty(p.Results.list_route)
+                url = url + strip(nvp.list_route, 'right', '/')  + "/";
+            elseif ~isempty(p.Results.nested_route)
+                url = url + nvp.parent_pk  + "/";
+                url = url + strip(nvp.nested_route, 'right', '/')  + "/";
+            end
+
+            if ~isempty(pk)
+                url = url + pk;
+            end
+
+            if ~isempty(p.Results.detail_route)
+                url = url +  strip(nvp.detail_route, 'right', '/')  + "/";
+            end
 
         end
 
