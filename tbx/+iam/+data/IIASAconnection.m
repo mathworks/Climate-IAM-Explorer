@@ -348,7 +348,11 @@ classdef IIASAconnection < iam.data.Connection
             
             for i = 1 : length(names)
                 name = names(i).name;
-                scheme = names(i).scheme;
+                if isfield(names(i), 'scheme')
+                    scheme = names(i).scheme;
+                else
+                    scheme = "";
+                end
                 if isfield(names(i), 'config')
                     con = names(i).config;
                     env = "env_" + i;
