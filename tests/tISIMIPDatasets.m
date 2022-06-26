@@ -55,41 +55,6 @@ classdef tISIMIPDatasets < matlab.mock.TestCase
 
         end
 
-        function tSelectPoints(tc)
-
-            import matlab.unittest.fixtures.TemporaryFolderFixture
-            
-            tempFixture = tc.applyFixture(TemporaryFolderFixture);
-
-            myclient = isimip.ISIMIPClient();
-            response = myclient.datasets(...
-                simulation_round='ISIMIP3b', ...
-                           product='InputData', ...
-                           climate_forcing='gfdl-esm4', ...
-                           climate_scenario='ssp126', ...
-                           climate_variable='sfcwind') ;
-
-            file_paths = [];
-            for dataset = response.results'
-
-                for file = dataset.files'
-                    file_paths = [file_paths; string(file.path)];
-                end
-
-            end
-
-            lat = [52.518611; 40.712778; 39.906667; -23.5; -4.331667];
-            lon = [13.408333; -74.005833;  116.3975; -46.616667; 15.313889];
-            download_path = tempFixture.Folder + ["downloads/berlin"; "downloads/new-york-city"; "downloads/beijing"; "downloads/sao-paulo"; "downloads/kinshasa"];
-
-            points = table(lat, lon, download_path);
-
-            for i = 1:height(points)
-                response = tc.client.select(file_paths, point=[points.lat(i), points.lon(i)], poll=10);
-                tc.client.download(response.file_url, path = points.download_path(i), validate = false, extract= true);
-            end
-        end
-
         function tCutoutAndDownload(tc)
 
             import matlab.unittest.fixtures.TemporaryFolderFixture
@@ -140,6 +105,46 @@ classdef tISIMIPDatasets < matlab.mock.TestCase
 
         end
         
+    end
+
+    methods (Test, TestTags = {'Integration'})
+
+        function tSelectPoints(tc)
+
+            import matlab.unittest.fixtures.TemporaryFolderFixture
+            
+            tempFixture = tc.applyFixture(TemporaryFolderFixture);
+
+            myclient = isimip.ISIMIPClient();
+            response = myclient.datasets(...
+                simulation_round='ISIMIP3b', ...
+                           product='InputData', ...
+                           climate_forcing='gfdl-esm4', ...
+                           climate_scenario='ssp126', ...
+                           climate_variable='sfcwind') ;
+
+            file_paths = [];
+            for dataset = response.results'
+
+                for file = dataset.files'
+                    file_paths = [file_paths; string(file.path)];
+                end
+
+            end
+
+            lat = [52.518611; 40.712778; 39.906667; -23.5; -4.331667];
+            lon = [13.408333; -74.005833;  116.3975; -46.616667; 15.313889];
+            download_path = tempFixture.Folder + ["downloads/berlin"; "downloads/new-york-city"; "downloads/beijing"; "downloads/sao-paulo"; "downloads/kinshasa"];
+
+            points = table(lat, lon, download_path);
+
+            for i = 1:height(points)
+                response = tc.client.select(file_paths, point=[points.lat(i), points.lon(i)], poll=10);
+                tc.client.download(response.file_url, path = points.download_path(i), validate = false, extract= true);
+            end
+            
+        end
+
     end
 
 end
