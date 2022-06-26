@@ -20,7 +20,7 @@ classdef tISIMIPDatasets < matlab.mock.TestCase
 
     end
 
-    methods (Test)
+    methods (Test, TestTags = {'Unit'})
 
         function tSearchByDataset(tc)
             

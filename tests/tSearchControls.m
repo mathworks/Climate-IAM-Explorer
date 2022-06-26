@@ -16,7 +16,7 @@ classdef tSearchControls < matlab.uitest.TestCase
         end
     end
 
-    methods(Test, TestTags = {'GUI'})
+    methods (Test, TestTags = {'GUI'})
         % Test methods
 
         function tLoadApp(tc)
