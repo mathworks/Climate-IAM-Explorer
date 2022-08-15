@@ -173,6 +173,11 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
                 value = obj.UITable.Data(obj.TableIdx(:,1),:);
             end
         end
+
+        function delete(obj)
+            fig = ancestor(obj.MainGridLayout,'figure','toplevel');
+            delete(fig)
+        end
         
     end
     
