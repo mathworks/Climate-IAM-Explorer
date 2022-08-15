@@ -1,7 +1,8 @@
 classdef tConnection < matlab.uitest.TestCase
     
 
-    methods (Test)
+    methods (Test, TestTags = {'Unit'})
+
         % Test methods
 
         function testNGFSconnection(tc)
