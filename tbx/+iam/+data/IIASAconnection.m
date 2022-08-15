@@ -94,7 +94,7 @@ classdef IIASAconnection < iam.data.Connection
             url = strjoin([obj.Config.baseUrl, "docs"], "/");
             
             headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; 'Content-Type', 'application/json'};
-            options = weboptions('HeaderFields', headerFields, 'Timeout', 40);
+            options = weboptions('HeaderFields', headerFields, 'Timeout', 40, 'CertificateFilename', '');
             
             input = sprintf("{""keys"": [ ""/%s/%d""]}",type, idx);
             
