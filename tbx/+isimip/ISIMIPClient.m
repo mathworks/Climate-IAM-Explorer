@@ -144,7 +144,7 @@ classdef ISIMIPClient
             job = obj.restClient.postFiles(payload);
 
             if nvp.poll
-                value = obj.poll(job, @(args) obj.cutout(args{:}), {paths, bbox, nvp.poll}, nvp.poll);
+                value = obj.poll(job, @(args) obj.cutout(args{:}), {paths, bbox, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
@@ -182,7 +182,8 @@ classdef ISIMIPClient
             job = obj.restClient.postFiles(payload);
 
             if ~isempty(nvp.poll)
-                value = obj.poll(job, @(varargin) obj.select(varargin{1}, varargin{2:end}), {paths, nvp.country, nvp.bbox, nvp.point, nvp.poll}, nvp.poll);
+                value = obj.poll(job, @(varargin) obj.select(varargin{1}, varargin{2:end}), ...
+                    {paths, 'country', nvp.country, 'bbox', nvp.bbox, 'point', nvp.point, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
@@ -219,7 +220,8 @@ classdef ISIMIPClient
 
             job  = obj.restClient.postFiles(payload);
             if nvp.poll
-                value = obj.poll(job, @(varargin) obj.mask(varargin{1}, varargin{2:end}), {nvp.paths, nvp.country, nvp.bbox, nvp.landonly, nvp.poll}, nvp.poll);
+                value = obj.poll(job, @(varargin) obj.mask(varargin{1}, varargin{2:end}), ...
+                    {nvp.paths, 'country', nvp.country, 'bbox', nvp.bbox, 'landonly', nvp.landonly, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
@@ -235,7 +237,7 @@ classdef ISIMIPClient
 
             if ismember(job.status, ["queued", "started"])
                 pause(poll_sleep)
-                value = method(obj, args{:});
+                value = method(args{:});
             else
                 value = job;
             end

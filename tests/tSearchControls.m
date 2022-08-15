@@ -12,8 +12,15 @@ classdef tSearchControls < matlab.uitest.TestCase
         % Setup for each test
         function loadApp(tc)
             tc.app = iam.controls.SearchDatabaseControls;
-            cleanupObj = onCleanup(@() delete(tc.app));
         end
+    end
+
+    methods (TestMethodTeardown)
+
+        function deleteApp(tc)
+            delete(tc.app)
+        end
+
     end
 
     methods (Test, TestTags = {'GUI'})

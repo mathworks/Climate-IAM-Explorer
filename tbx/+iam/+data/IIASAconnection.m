@@ -19,16 +19,19 @@ classdef IIASAconnection < iam.data.Connection
         ConnectionProperties = matlab.net.http.HTTPOptions( ...
             'ConnectTimeout', 40, ...
             'Debug', 0, ...
-            'ProgressMonitorFcn', @iam.views.RequestProgressMonitor)
+            'ProgressMonitorFcn', @iam.views.RequestProgressMonitor, ...
+            'CertificateFilename', '')
     end
     
     properties (Access = private)
-        AuthToken
+        AuthToken (1,:) char = ""
+        RefreshToken (1,:) char = ""
+        GuestLogin (1,1) logical = true
         AllEnvironments (:,5) table
     end
     
     properties (Constant, Access = private)
-        Auth_Url (1,1) string = "https://db1.ene.iiasa.ac.at/EneAuth/config/v1";
+        Auth_Url (1,1) string = "https://api.manager.ece.iiasa.ac.at";
     end
     
     methods
@@ -91,7 +94,7 @@ classdef IIASAconnection < iam.data.Connection
             url = strjoin([obj.Config.baseUrl, "docs"], "/");
             
             headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; 'Content-Type', 'application/json'};
-            options = weboptions('HeaderFields', headerFields, 'Timeout', 40);
+            options = weboptions('HeaderFields', headerFields, 'Timeout', 40, 'CertificateFilename', '');
             
             input = sprintf("{""keys"": [ ""/%s/%d""]}",type, idx);
             
@@ -319,13 +322,16 @@ classdef IIASAconnection < iam.data.Connection
         function authenticateConnection(obj, username, password)
             
             if isempty(username)
-                obj.AuthToken = webread(strjoin([obj.Auth_Url, "anonym"],"/"));
+                obj.AuthToken = webread(strjoin([obj.Auth_Url, "legacy/anonym"],"/"));
                 obj.Authorize = true ;
             elseif nargin == 3
+                obj.GuestLogin = false;
                 input = struct('username',username,'password',password) ;
-                url = strjoin([obj.Auth_Url, "login"],"/");
+                url = strjoin([obj.Auth_Url, "v1/token/obtain"],"/");
                 try
-                    obj.AuthToken = webwrite(url, input) ;
+                    tokens = webwrite(url, input) ;
+                    obj.AuthToken = tokens.access;
+                    obj.RefreshToken = tokens.refresh;
                     obj.Authorize = true ;
                 catch
                     obj.Authorize = false ;
@@ -336,10 +342,55 @@ classdef IIASAconnection < iam.data.Connection
             end
             
         end
+
+        function refreshToken(obj)
+
+            persistent multicall
+
+            import matlab.net.*;
+            import matlab.net.http.*;
+            import matlab.net.http.field.*;
+            import matlab.net.http.io.*;
+
+            if isempty(multicall)
+                multicall = 1;
+            else
+                multicall = multicall + 1;
+                if multicall == 5
+                    error("IIASAConnection:refreshToken:multipleRefresh","something went wrong")
+                end
+            end
+
+            if obj.GuestLogin
+                obj.authenticateConnection();
+                multicall = [];
+            else
+                url = strjoin([obj.Auth_Url, "v1/token/refresh"],"/");
+
+                mt = MediaType('application/json');
+            
+                hf1 = ContentTypeField(mt);
+                rm = RequestMessage('post', hf1);
+
+                mb = MessageBody();
+                mb.Data = struct('refresh',obj.RefreshToken);
+
+                rm.Body = mb;
+
+                rsp = rm.send(url, obj.ConnectionProperties);
+                if rsp.StatusCode == "OK"
+                    obj.AuthToken = rsp.Body.Data.access;
+                    multicall = [];
+                else
+                    error("IIASAConnection:refreshToken:UnableToRefresh", "Unable to refresh token, please try to authenticate again")
+                end
+            end
+
+        end
         
         function getAllEnvironments(obj, environment)
             
-            url = strjoin([obj.Auth_Url, "applications"], "/");
+            url = strjoin([obj.Auth_Url, "legacy/applications"], "/");
             names = obj.getRequest(url);
             
             numEnv = length(names);
@@ -383,7 +434,7 @@ classdef IIASAconnection < iam.data.Connection
         
         function getEnvConfig(obj, env)
             
-            url = strjoin([obj.Auth_Url, "config/user", env.name], "/");
+            url = strjoin([obj.Auth_Url, "legacy/config/user", env.name], "/");
             
             env_config = obj.getRequest(url);
             env_config = env_config.records;
@@ -415,7 +466,6 @@ classdef IIASAconnection < iam.data.Connection
             import matlab.net.http.io.*;
             
             mt = MediaType('application/json');
-            
             mb = MessageBody();
             mb.Payload= unicode2native(input, 'UTF-8');
             hf1 = ContentTypeField(mt);
@@ -429,6 +479,12 @@ classdef IIASAconnection < iam.data.Connection
             
             if rsp.StatusCode == "OK"
                 response = rsp.Body.Data;
+
+            elseif rsp.StatusCode == "Unauthorized" && isfield(rsp.Body.Data, 'errorCode') && rsp.Body.Data.errorCode == "TOKEN_EXPIRED"
+
+                obj.refreshToken()
+                response = obj.postRequest(url, input);
+                
             else
                 error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
             end
