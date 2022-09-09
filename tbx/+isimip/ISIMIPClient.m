@@ -77,9 +77,9 @@ classdef ISIMIPClient
 
         end
 
-        function value = files(obj, pk, varargin)
+        function value = files(obj, varargin)
 
-            value = obj.retrieve("/files", pk, varargin{:});
+            value = obj.retrieve("/files", [], varargin{:});
 
         end
 
@@ -123,12 +123,12 @@ classdef ISIMIPClient
 
         end
 
-        function value = cutout(obj, paths, bbox, nvp)
+        function value = cutout(obj, paths, nvp)
 
             arguments
                 obj
                 paths string
-                bbox
+                nvp.bbox
                 nvp.poll = []
             end
 
@@ -139,12 +139,12 @@ classdef ISIMIPClient
             end
 
             payload.task = 'cutout_bbox';
-            payload.bbox = bbox;
+            payload.bbox = nvp.bbox;
 
             job = obj.restClient.postFiles(payload);
 
             if nvp.poll
-                value = obj.poll(job, @(args) obj.cutout(args{:}), {paths, bbox, 'poll', nvp.poll}, nvp.poll);
+                value = obj.poll(job, @(args) obj.cutout(args{:}), {paths, nvp.bbox, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
@@ -214,14 +214,14 @@ classdef ISIMIPClient
             elseif ~isempty(nvp.bbox)
                 payload.task = "mask_bbox";
                 payload.bbox = nvp.bbox;
-            elseif ~isempty(nvp.point)
+            elseif ~isempty(nvp.landonly)
                 payload.task = "mask_landonly";
             end
 
             job  = obj.restClient.postFiles(payload);
             if nvp.poll
                 value = obj.poll(job, @(varargin) obj.mask(varargin{1}, varargin{2:end}), ...
-                    {nvp.paths, 'country', nvp.country, 'bbox', nvp.bbox, 'landonly', nvp.landonly, 'poll', nvp.poll}, nvp.poll);
+                    {paths, 'country', nvp.country, 'bbox', nvp.bbox, 'landonly', nvp.landonly, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
