@@ -12,6 +12,14 @@ classdef tConnection < matlab.uitest.TestCase
             tc.verifyClass(e, 'iam.IAMEnvironment')
 
         end
+
+        function testNGFSconnectionPhase3(tc)
+
+            c = iam.data.IIASAconnection('ngfs_phase_3');
+            e = iam.IAMEnvironment(c);
+            tc.verifyClass(e, 'iam.IAMEnvironment')
+
+        end
         
     end
 
