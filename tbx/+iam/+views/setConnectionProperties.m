@@ -1,4 +1,4 @@
-classdef setConenctionProperties
+classdef setConnectionProperties
     
     properties
         FIG
@@ -10,7 +10,7 @@ classdef setConenctionProperties
     end
     
     methods 
-        function obj = setConenctionProperties(c)
+        function obj = setConnectionProperties(c)
             obj.Conn = c;
             
             obj.FIG = uifigure;
