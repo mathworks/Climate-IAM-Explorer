@@ -6,15 +6,13 @@
 |:----------------|:-----------|
 | GitHub Actions | [![MATLAB](https://github.com/mathworks/Database-Explorer-for-IIASA/workflows/MATLAB/badge.svg)](https://github.com/mathworks/Database-Explorer-for-IIASA/actions?query=workflow%3AMATLAB) |
 
-This repository contains a set of tools to allow users explore the [different datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html) hosted by the IIASA Energy program (ENE). These databases contain a series models that predict the evolution magnitudes including CO2, Energy Prices, and Population among others. Each prediction is based in different climate scenarios established by the model. To understand more about how the different scenarios are built, we recommend visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
+This repository contains a set of tools to allow users explore integrated assesmemnt models and [**some examples**](https://github.com/mathworks/Climate-IAM-Explorer/tree/master/examples) showcasing how one can use this information in conjuntion to financial applications. The models accessible by the tool include the [different datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html) hosted by the IIASA Energy program (ENE), but it is extensible to your own custom models. These databases contain a series models that predict the evolution magnitudes including CO2, Energy Prices, and Population among others. Each prediction is based in different climate scenarios established by the model. To understand more about how the different scenarios are built, we recommend visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
 </br>
 [Huppmann et al., Nature Climate Change (2018)](https://www.nature.com/articles/s41558-018-0317-4)
 </br>
 [NGFS Climate Scenarios Database](https://www.ngfs.net/sites/default/files/ngfs_climate_scenario_technical_documentation_final.pdf)
 
 Please note that this tool is complementary to the more complete (IIASA Scenario Explorer](https://data.ene.iiasa.ac.at/auth/#/) and the main purpose is to allow getting the data directly into MATLAB.
-
-We’d like to thank Stefano Battiston, Antoine Mandel and Irene Monasterolo for their help in developing and validating this example. The three scholars are amongst the authors of the referenced papers, rank among the leaders in global climate impact research, and are pioneers in the assessment of climate-related financial risks. They are also founders of CLIMAFIN, a start-up that provides solutions climate-related financial risk for corporate clients.
 
 The repository mostly consists of two separate tools. A MATLAB API to the RESTful interface form IIASA below: <br />
 https://documenter.getpostman.com/view/1057691/SWE6Zcmd#a361ba3a-9c0b-47f5-be21-58202dd6c804 
@@ -40,7 +38,7 @@ The app will load the NGFS scenario by default, but this can be changed at will.
 
 Programatically, the connection to the IIASA database can be created with a default selected scenario or completely empty. To connect to a specific scenario, please select the product name (e.g. "IXSE_NGFS"), the scheme (e.g. "IXMP Scenario Explorer SPA UI"), the environment (e.g. "ngfs"), or the product name (e.g. "NGFS Scenario Explorer"). For example:
 
-    c = iam.IIASAConnection('ngfs');
+    c = iam.data.IIASAConnection('ngfs');
 
 At any point in time, a user can view all the available environments in the database:
 

@@ -15,6 +15,8 @@ classdef LIMITSconnection < iam.data.Connection
         Config struct = struct( ...
             'name', "LIMITS", 'env', "limits",'productName', "LIMITS", ...
             'database', "LIMITS", "welcome", "Welcome to the LIMITS Database");
+        
+        ConnectionProperties
     end
     
     properties (Constant, Access = private)
@@ -117,7 +119,7 @@ classdef LIMITSconnection < iam.data.Connection
                 opts = setvaropts(opts, ["model","scenario", "region", "variable", "unit"], "EmptyFieldRule", "auto");
                 
                 % Import the data
-                AllValues = readtable("C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\iam-explorer\examples\LIMITSPUBLIC_2014-10-13.csv", opts);
+                AllValues = readtable(obj.File, opts);
                 
                 years = obj.YEARS;
                 
@@ -147,7 +149,7 @@ classdef LIMITSconnection < iam.data.Connection
                         data(num).scenario = scenarios(i);
                         data(num).variable = varName;
                         data(num).region   = regions(i);
-                        data(num).runID    = obj.TimeseriesList{i,'run_id'};
+                        data(num).runId    = obj.TimeseriesList{i,'run_id'};
                         data(num).version  = [];
                         data(num).unit     = unit(i);
                         data(num).years    = years(1:nonEmpty);

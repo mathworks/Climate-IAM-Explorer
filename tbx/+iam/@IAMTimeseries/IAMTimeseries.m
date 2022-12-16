@@ -9,7 +9,7 @@ classdef IAMTimeseries
         Region   (1,1) string
         Unit     (1,1) string
         RunId    (1,1) double
-        Version  (1,1) double
+        Version  (:,1) double
         Years    (:,1) double
         Values   (:,:) timetable
     end
@@ -35,6 +35,8 @@ classdef IAMTimeseries
                     obj(i).Variable = data.variable;
                     obj(i).Region = data.region;
                     obj(i).Unit = data.unit;
+                    obj(i).RunId = data.runId;
+                    obj(i).Version = data.version;
                     obj(i).Years = data.years;
                     obj(i).Values = data.values;
                 end
@@ -93,17 +95,8 @@ classdef IAMTimeseries
             
             if ~isempty(obj)
                 allVars = synchronize(obj.Values);
-                try 
-                    h = plot(allVars.Year, allVars{:,:}, varargin{:});
-                catch
-                    
-                    h = plot(obj(1).Years, obj(1).Values, varargin{:});
-                    hold(h(1).Parent,'on')
-                    for i = 2 : length(obj)
-                        h(i) = plot(obj(i).Years, obj(i).Values, varargin{:});
-                    end
-                    hold(h(1).Parent,'off')
-                end
+                h = plot(allVars.Year, allVars{:,:}, varargin{:});
+                
                 axis(h(1).Parent,'tight');
                 xlabel(h(1).Parent,'Years');
 

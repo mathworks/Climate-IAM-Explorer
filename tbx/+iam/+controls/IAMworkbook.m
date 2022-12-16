@@ -5,14 +5,6 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         MainGridLayout matlab.ui.container.GridLayout
         
         TabGroup      matlab.ui.container.TabGroup
-        AnalysisTab   matlab.ui.container.Tab
-        GridLayout2   matlab.ui.container.GridLayout
-        EqualSign     matlab.ui.control.Label
-        FormulaField  matlab.ui.control.EditField
-        VarNameField  matlab.ui.control.EditField
-        AddButton     matlab.ui.control.Button
-        CustomVars    matlab.ui.control.Table
-        IAMvars       matlab.ui.control.Table
         PlottingTab   matlab.ui.container.Tab
         GridLayout    matlab.ui.container.GridLayout
         RegionsListBox                  matlab.ui.control.ListBox
@@ -330,54 +322,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             obj.PlottingTab = uitab(obj.TabGroup);
             obj.PlottingTab.Title = 'Plotting';
             
-            % Create AnalysisTab
-            obj.AnalysisTab = uitab(obj.TabGroup);
-            obj.AnalysisTab.Title = 'Analysis';
-            
             obj.TabGroup.SelectedTab = obj.PlottingTab;
-            
-            % Create GridLayout2
-            obj.GridLayout2 = uigridlayout(obj.AnalysisTab);
-            obj.GridLayout2.ColumnWidth = {50, 20, '1x', 50};
-            obj.GridLayout2.RowHeight = {'5x', 20, '3x'};
-            
-            % Create IAMvars
-            obj.IAMvars = uitable(obj.GridLayout2);
-            obj.IAMvars.ColumnName = {'Column 1'; 'Column 2'; 'Column 3'; 'Column 4'};
-            obj.IAMvars.RowName = {};
-            obj.IAMvars.Layout.Row = 1;
-            obj.IAMvars.Layout.Column = [1 4];
-            
-            % Create CustomVars
-            obj.CustomVars = uitable(obj.GridLayout2);
-            obj.CustomVars.ColumnName = {'Column 1'; 'Column 2'; 'Column 3'; 'Column 4'};
-            obj.CustomVars.RowName = {};
-            obj.CustomVars.Layout.Row = 3;
-            obj.CustomVars.Layout.Column = [1 4];
-            
-            % Create AddButton
-            obj.AddButton = uibutton(obj.GridLayout2, 'push');
-            obj.AddButton.Layout.Row = 2;
-            obj.AddButton.Layout.Column = 4;
-            obj.AddButton.Text = 'Add';
-            
-            % Create VarNameField
-            obj.VarNameField = uieditfield(obj.GridLayout2, 'text');
-            obj.VarNameField.Layout.Row = 2;
-            obj.VarNameField.Layout.Column = 1;
-            obj.VarNameField.Value = 'myVar';
-            
-            % Create FormulaField
-            obj.FormulaField = uieditfield(obj.GridLayout2, 'text');
-            obj.FormulaField.Layout.Row = 2;
-            obj.FormulaField.Layout.Column = 3;
-            
-            % Create EqualSign
-            obj.EqualSign = uilabel(obj.GridLayout2);
-            obj.EqualSign.FontSize = 16;
-            obj.EqualSign.Layout.Row = 2;
-            obj.EqualSign.Layout.Column = 2;
-            obj.EqualSign.Text = '=';
             
             % Create GridLayout
             obj.GridLayout = uigridlayout(obj.MainGridLayout);
