@@ -9,10 +9,6 @@ classdef IAMChart < matlab.mixin.SetGet
         Label
     end
     
-%     properties
-%         BarStyle = "stacked";
-%     end
-    
     properties (Access = private)
         Data (:,1) iam.IAMTimeseries
         BarProps cell = {};
