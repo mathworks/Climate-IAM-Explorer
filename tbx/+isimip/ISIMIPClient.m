@@ -144,7 +144,7 @@ classdef ISIMIPClient
             job = obj.restClient.postFiles(payload);
 
             if nvp.poll
-                value = obj.poll(job, @(args) obj.cutout(args{:}), {paths, nvp.bbox, 'poll', nvp.poll}, nvp.poll);
+                value = obj.poll(job, @(varargin) obj.cutout(varargin{1}, varargin{2:end}), {paths, 'bbox' nvp.bbox, 'poll', nvp.poll}, nvp.poll);
             else
                 value = job;
             end
@@ -283,7 +283,7 @@ classdef ISIMIPClient
 
         end
 
-        function [url, unmatched] = build_url(obj, resource_url, varargin)
+        function [url, unmatched] = build_url(~, resource_url, varargin)
 
             p = inputParser;
             p.KeepUnmatched = true;
