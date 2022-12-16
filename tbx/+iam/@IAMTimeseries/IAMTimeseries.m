@@ -95,17 +95,8 @@ classdef IAMTimeseries
             
             if ~isempty(obj)
                 allVars = synchronize(obj.Values);
-                try 
-                    h = plot(allVars.Year, allVars{:,:}, varargin{:});
-                catch
-                    
-                    h = plot(obj(1).Years, obj(1).Values, varargin{:});
-                    hold(h(1).Parent,'on')
-                    for i = 2 : length(obj)
-                        h(i) = plot(obj(i).Years, obj(i).Values, varargin{:});
-                    end
-                    hold(h(1).Parent,'off')
-                end
+                h = plot(allVars.Year, allVars{:,:}, varargin{:});
+                
                 axis(h(1).Parent,'tight');
                 xlabel(h(1).Parent,'Years');
 
