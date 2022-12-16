@@ -128,7 +128,7 @@ classdef LIMITSconnection < iam.data.Connection
                 
                 data = struct.empty();
                 if ~isempty(tb)
-                    f
+                    
                     num = 1;
                     data = struct([]);
                     
