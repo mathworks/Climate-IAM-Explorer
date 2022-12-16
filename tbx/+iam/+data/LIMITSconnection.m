@@ -119,7 +119,7 @@ classdef LIMITSconnection < iam.data.Connection
                 opts = setvaropts(opts, ["model","scenario", "region", "variable", "unit"], "EmptyFieldRule", "auto");
                 
                 % Import the data
-                AllValues = readtable("C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\iam-explorer\examples\LIMITSPUBLIC_2014-10-13.csv", opts);
+                AllValues = readtable(obj.File, opts);
                 
                 years = obj.YEARS;
                 
@@ -128,7 +128,7 @@ classdef LIMITSconnection < iam.data.Connection
                 
                 data = struct.empty();
                 if ~isempty(tb)
-                    
+                    f
                     num = 1;
                     data = struct([]);
                     
