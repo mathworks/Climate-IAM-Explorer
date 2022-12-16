@@ -3,7 +3,7 @@ classdef HTMLTree < matlab.mixin.SetGet
     % Copyright 2020-2021 The MathWorks, Inc.
     
     properties (Access = public)
-        HTML matlab.ui.control.HTML
+        HTML matlab.ui.control.HTML = matlab.ui.control.HTML.empty()
     end
     
     properties (Access = private)
@@ -13,16 +13,18 @@ classdef HTMLTree < matlab.mixin.SetGet
     methods
         
         function obj = HTMLTree(varargin)
-            obj.HTML = uihtml(varargin{:});            
+            if isempty(obj.HTML)
+                obj.HTML = uihtml(varargin{:});
+            else
+                set(obj.HTML, varargin{:})
+            end
         end
         
-        function delete(obj)            
-            obj.removeTempFile();
+        function delete(obj)  
+            delete(obj.HTML)
         end
         
         function fillTree(obj, vars)
-            
-            obj.removeTempFile();
             
             if ~isempty(vars)
                 
@@ -34,14 +36,10 @@ classdef HTMLTree < matlab.mixin.SetGet
                 str = [str; tail];
                 str = strjoin(str,'\n');
                 
-                newHTML = tempname + ".html";
-                obj.TempFile = newHTML;
-                
-                fileId = fopen(newHTML,'w');
-                fwrite(fileId, str );
-                fclose(fileId);
-                
-                obj.HTML.HTMLSource = newHTML;
+                obj.HTML.HTMLSource = str;
+
+            else
+                obj.HTML.HTMLSource = "<html></html>";
             end
             
         end
@@ -100,8 +98,9 @@ classdef HTMLTree < matlab.mixin.SetGet
     methods (Access = private)
         
         function removeTempFile(obj)
+            
             if ~isempty(obj) && isfile(obj.TempFile)
-                delete(obj.TempFile)
+                delete(obj.TempFile)            
                 delete(obj.HTML)
             end
         end

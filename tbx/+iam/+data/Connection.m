@@ -4,6 +4,10 @@ classdef (Abstract) Connection < matlab.mixin.SetGetExactNames
         Environment % Name of the database where we are connected
     end
     
+    properties (Abstract, SetAccess = private)
+        ConnectionProperties
+    end
+    
     methods (Abstract)
         ts     = getBulkData( obj, varargin );
         params = getRunDetails( obj, runId );
