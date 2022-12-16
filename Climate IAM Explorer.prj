@@ -1,5 +1,5 @@
 <deployment-project plugin="plugin.toolbox" plugin-version="1.0">
-  <configuration build-checksum="3509781231" file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Climate IAM Explorer" target="target.toolbox" target-name="Package Toolbox">
+  <configuration build-checksum="3813198485" file="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA\Climate IAM Explorer.prj" location="C:\Users\ebenetce\OneDrive - MathWorks\AEProjects\Climate\Database-Explorer-for-IIASA" name="Climate IAM Explorer" target="target.toolbox" target-name="Package Toolbox">
     <param.appname>Climate IAM Explorer</param.appname>
     <param.authnamewatermark>Eduard Benet</param.authnamewatermark>
     <param.email>ebenetce@mathworks.com</param.email>
@@ -25,7 +25,9 @@
     <param.examples />
     <param.demosxml />
     <param.apps />
-    <param.registered.apps />
+    <param.registered.apps>
+      <file>${PROJECT_ROOT}\tbx\app\IAMDataExplorer.mlapp</file>
+    </param.registered.apps>
     <param.docs />
     <param.getting.started.guide>${PROJECT_ROOT}\tbx\doc\GettingStarted.mlx</param.getting.started.guide>
     <param.matlabpath.excludes />
@@ -56,7 +58,6 @@
       <param.examples />
       <param.demosxml />
       <param.apps />
-      <param.registered.apps />
       <param.docs />
       <param.matlabpath.excludes />
       <param.javaclasspath.excludes />
@@ -83,6 +84,7 @@
       <file>${PROJECT_ROOT}\tbx\+iam</file>
       <file>${PROJECT_ROOT}\tbx\+isimip</file>
       <file>${PROJECT_ROOT}\tbx\app</file>
+      <file>${PROJECT_ROOT}\tbx\DesktopToolset.xml</file>
       <file>${PROJECT_ROOT}\tbx\doc</file>
     </fileset.rootfiles>
     <fileset.depfun.included />
