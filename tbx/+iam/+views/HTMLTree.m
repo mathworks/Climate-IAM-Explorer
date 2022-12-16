@@ -15,6 +15,8 @@ classdef HTMLTree < matlab.mixin.SetGet
         function obj = HTMLTree(varargin)
             if isempty(obj.HTML)
                 obj.HTML = uihtml(varargin{:});
+            else
+                set(obj.HTML, varargin{:})
             end
         end
         
