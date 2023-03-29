@@ -7,7 +7,7 @@ classdef tConnection < matlab.uitest.TestCase
 
         function testNGFSconnection(tc)
                         
-            c = iam.data.IIASAconnection('ngfs');
+            c = iam.data.IIASAconnection('ngfs_phase_2');
             e = iam.IAMEnvironment(c);
             tc.verifyClass(e, 'iam.IAMEnvironment')
 
