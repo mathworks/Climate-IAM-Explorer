@@ -423,6 +423,9 @@ classdef IIASAconnection < iam.data.Connection
                     tb{i,:} = [string(pname), string(env), string(url), string(name), string(scheme)];
                 end
             end
+
+            % sort environments alphabetically
+            tb = sortrows(tb, "env", "ascend");
             
             obj.AllEnvironments = tb;
             
