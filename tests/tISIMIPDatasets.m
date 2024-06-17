@@ -107,7 +107,7 @@ classdef tISIMIPDatasets < matlab.mock.TestCase
         
     end
 
-    methods (Test, TestTags = {'Integration'})
+    methods (Test, TestTags = {'ISIMIP','Integration'})
 
         function tSelectPoints(tc)
 
