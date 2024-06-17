@@ -22,6 +22,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         
         TableData (:,1) iam.IAMTimeseries
         OpenTreeButton matlab.ui.control.Button
+        Listeners
         
     end
     
@@ -33,6 +34,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         InputsGrid matlab.ui.container.GridLayout
         TableIdx (:,2) double
         TreeFields (:,1) string
+        TreeChangedListeners
     end
     
     methods
@@ -113,7 +115,9 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             editField = obj.GenericEditField(idx);
             checkBox = obj.GenericStrictCheckbox(idx);
             
-            data = strsplit(editField.Value,';');
+            data = strsplit(editField.Value,';;');
+            idx = cellfun(@isempty, data);
+            data(idx) = [];
             strict = checkBox.Value;
             
         end
@@ -132,26 +136,35 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
                 delete(obj.GenericHTML(idx))
             end
             
-            obj.GenericHTML(idx) = iam.views.HTMLTree('Parent',obj.TreeTab.Grids(idx),'DataChangedFcn', @(s,e) appendEditField(s,e));
+            obj.GenericHTML(idx) = iam.views.HTMLTree('Parent',obj.TreeTab.Grids(idx));
             obj.GenericHTML(idx).fillTree(field);
-            obj.GenericHTML(idx).HTML.DataChangedFcn = @(s,e) appendEditField(e);
-            
-            function appendEditField(e)
-                
-                editField = obj.GenericEditField(idx);
-                info = jsondecode(e.Data);
-                if info.VALUE
-                    newVar = field(str2double(info.ID));
-                    if isempty(editField.Value)
-                        editField.Value = newVar;
-                    else
-                        editField.Value = strjoin([editField.Value;newVar],";");
-                    end
-                else
-                    newVar = field(str2double(info.ID));
-                    editField.Value = strjoin(setdiff(split(editField.Value,';'),newVar),';');
+            obj.Listeners = [obj.Listeners, listener(obj.GenericHTML(idx), 'SelectionChanged', @(s,e) obj.appendEditField(s,e,idx))];
+
+        end
+
+        function appendEditField(obj, s, ~, idx)
+            change = s.LastChange;
+            current = obj.GenericEditField(idx).Value;
+            if ~isempty(current)
+                current = strtrim(strsplit(current, ";;"));
+                if isempty(current{end})
+                    current(end) = [];
                 end
-                
+            end
+
+            if change.VALUE
+                if isempty(current)
+                    obj.GenericEditField(idx).Value = change.NAME + ";;";
+                else
+                    obj.GenericEditField(idx).Value = strjoin([current, change.NAME], ";;") + ";;";
+                end
+            else
+                new = strjoin(setdiff(current, change.NAME),";;");
+                if new == ""
+                    obj.GenericEditField(idx).Value = string.empty();
+                else
+                    obj.GenericEditField(idx).Value = new + ";;";
+                end
             end
         end
         
@@ -194,11 +207,30 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             label.Text = text;
             
             % Create VariableEditField
-            ef = uieditfield(obj.InputsGrid, 'text', Placeholder = 'Value1; Value2; ...; ValueN');
+            ef = uieditfield(obj.InputsGrid, 'text', Placeholder = 'Value1;; Value2;; ...;; ValueN');
+            ef.ValueChangedFcn = @(s,e) obj.editFieldChange(s,e, row);
             ef.Layout.Row = row;
             ef.Layout.Column = col + 1;
             
             obj.GenericEditField(row) = ef;
+        end
+
+        function editFieldChange(obj, s,e, row)
+
+            value = e.Value;
+            if ~isempty(value)
+                if ~endsWith(value, ";;")
+                    if endsWith(value, ";")
+                        value = value + ";";
+                    else
+                        value = value + ";;";
+                    end
+                end
+            end
+
+            s.Value = value;
+
+            obj.GenericHTML(row).SyncSelection(value);
         end
         
         function addCheckBox(obj, col, text)
@@ -222,10 +254,6 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
                 obj.MainGridLayout.ColumnWidth = {'1x','1x','1x','0x','3x'};
                 event.Source.Text = "<<";
             end
-        end
-        
-        function appendEditField(~,e,editField)
-            editField.Value = e.Data;
         end
         
         function plotSelected(obj,event)

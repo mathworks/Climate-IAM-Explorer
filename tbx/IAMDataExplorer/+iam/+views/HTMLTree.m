@@ -4,10 +4,19 @@ classdef HTMLTree < matlab.mixin.SetGet
     
     properties (Access = public)
         HTML matlab.ui.control.HTML = matlab.ui.control.HTML.empty()
+
+        Selected (:,1) string = []
+        Variables (:,1) string
+        LastChange (1,1) struct
+
     end
     
     properties (Access = private)
         TempFile (1,1) string
+    end
+
+    events 
+        SelectionChanged
     end
     
     methods
@@ -15,9 +24,23 @@ classdef HTMLTree < matlab.mixin.SetGet
         function obj = HTMLTree(varargin)
             if isempty(obj.HTML)
                 obj.HTML = uihtml(varargin{:});
+                obj.HTML.DataChangedFcn = @(s,e) obj.ChangedSelection(s,e);
             else
                 set(obj.HTML, varargin{:})
             end
+        end
+
+        function ChangedSelection(obj,~,e)
+            event = jsondecode(e.Data);
+            VarName = obj.Variables(str2double(event.ID));
+            obj.LastChange = struct(VALUE = event.VALUE, NAME = VarName);
+            if event.VALUE
+                obj.Selected = [obj.Selected;];
+            else
+                obj.Selected = setdiff(obj.Selected, VarName);
+            end
+
+            notify(obj, 'SelectionChanged')
         end
         
         function delete(obj)  
@@ -25,6 +48,10 @@ classdef HTMLTree < matlab.mixin.SetGet
         end
         
         function fillTree(obj, vars)
+
+            vars = unique(vars);
+
+            obj.Variables = vars;
             
             if ~isempty(vars)
                 
@@ -42,6 +69,29 @@ classdef HTMLTree < matlab.mixin.SetGet
                 obj.HTML.HTMLSource = "<html></html>";
             end
             
+        end
+
+        function SyncSelection(obj,data)
+            % Data comes from edit field, 
+            % Separate by comas
+            data = strtrim(strsplit(data, ";;"));
+
+            % Find variables to Check
+            [~,ToCheck] = ismember(data, obj.Variables);
+            ToCheck(ToCheck == 0) = [];
+
+            % Find variables to Uncheck
+            ToUncheck = setdiff(obj.Selected, data);
+            [~,ToUncheck] = ismember(ToUncheck, obj.Variables);
+
+            % Construct message
+            toSend = struct(ToCheck = [], ToUncheck = []);     
+            toSend.ToCheck = num2cell(ToCheck);
+            toSend.ToUncheck = num2cell(ToUncheck)';
+            
+            % Sync
+            obj.Selected = string(obj.Variables(ToCheck));
+            obj.HTML.Data = toSend;
         end
         
     end
@@ -87,7 +137,21 @@ classdef HTMLTree < matlab.mixin.SetGet
                 "            elem[i].addEventListener(""click"", function() { makeItHappen(id, htmlComponent); }, false);";
                 "        }()); // immediate invocation";
                 "    }";
-                "};"
+                "    htmlComponent.addEventListener(""DataChanged"", function(event) {";
+                "       checkNodesById(htmlComponent.Data.ToCheck, htmlComponent.Data.ToUncheck);";
+                "    });";
+                "};";
+                "function checkNodesById(idsToCheck, idsToUncheck) {";
+                "   // Convert all incoming IDs to numbers for comparison";
+                "   idsToCheck.forEach(function (id) {";
+                "      var checkbox = document.getElementById(id);";
+                "      checkbox.checked = true;";
+                "   })";
+                "   idsToUncheck.forEach(function (id) {";
+                "       var checkbox = document.getElementById(id);";
+                "       checkbox.checked = false;";
+                "   })";
+                "}";
                 "</script>";
                 "</body>";
                 "</html>";];

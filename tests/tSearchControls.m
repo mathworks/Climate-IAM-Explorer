@@ -32,6 +32,13 @@ classdef tSearchControls < matlab.uitest.TestCase
             tc.app.loadData(myData)
 
         end
+
+        function tTree(tc)
+            load testData.mat myData
+            tc.app.loadData(myData)
+            d.SyncSelection("Consumption, United states");
+            tc.verifyEqual(d.Selected, "Consumption")
+        end
     end
 
 end
