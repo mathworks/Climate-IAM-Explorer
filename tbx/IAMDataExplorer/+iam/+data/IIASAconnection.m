@@ -72,7 +72,7 @@ classdef IIASAconnection < iam.data.Connection
     
     methods %(Access = ?iam.IAMEnvironment)
         
-        function value = getMetadata(obj)
+        function value = getMetadataCategories(obj)
             
             url = strjoin([obj.Config.baseUrl, "metadata/types"], "/");
             
@@ -87,6 +87,24 @@ classdef IIASAconnection < iam.data.Connection
             url = strjoin([obj.Config.baseUrl, "metadata/types?name="], "/") + category + "";
             
             value = obj.getRequest(url);
+        end
+
+        function value = getMetadata(obj, name, value)
+
+            arguments
+                obj
+            end
+
+            arguments (Repeating)
+                name (1,:) string
+                value (1,:) double
+            end
+
+            params = strjoin(compose("%s=%d",name{:}, value{:}), "&");
+            url = obj.Config.baseUrl + "/metadata?" + params;
+
+            value = obj.getRequest(url);
+
         end
         
         function value = getDocumentation(obj, type, idx)
@@ -198,6 +216,20 @@ classdef IIASAconnection < iam.data.Connection
             
             if ~isempty(response)
                 response.name = string(response.name);
+            end
+            
+        end
+
+        function response = getAllTimeSeries(obj)
+            
+            url = strjoin([obj.Config.baseUrl, "ts"], "/");
+            response = obj.getRequest(url);
+            
+            response = struct2table(response);
+            
+            if ~isempty(response)
+                response.variable = string(response.variable);
+                response.unit = categorical(response.unit);
             end
             
         end
