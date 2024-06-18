@@ -23,6 +23,14 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
+
+      # Add a display to run App tests
+      - name: Start a display server for jobs running on Linux.
+        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        run: |
+          sudo apt-get install -y xvfb
+          Xvfb :99 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
       
       # Sets up MATLAB on the GitHub Actions runner
       - name: Setup MATLAB
