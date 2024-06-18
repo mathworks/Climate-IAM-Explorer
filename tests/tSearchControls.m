@@ -34,7 +34,7 @@ classdef tSearchControls < matlab.uitest.TestCase
         end
 
         function tTree(tc)
-            load test.mat field
+            load testData.mat field
             % Fill tree, and one edit field appears
             tc.app.addMetadataTree(field, "VARIABLES")
             tc.verifyNotEmpty(tc.app.GenericEditField)
