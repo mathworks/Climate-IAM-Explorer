@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       # Add a display to run App tests
-      - name: Start a display server for jobs running on Linux.
+      - name: Set up display on Linux
         if: ${{ matrix.platform == 'ubuntu-latest' }}
         run: |
           sudo apt-get install -y xvfb
