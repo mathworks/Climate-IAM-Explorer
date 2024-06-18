@@ -4,7 +4,7 @@
 
 | **CI Platform** | **Badges** |
 |:----------------|:-----------|
-| GitHub Actions | [![MATLAB](https://github.com/mathworks/Database-Explorer-for-IIASA/workflows/MATLAB/badge.svg)](https://github.com/mathworks/Database-Explorer-for-IIASA/actions?query=workflow%3AMATLAB) |
+| GitHub Actions | [![MATLAB](https://github.com/mathworks/Database-Explorer-for-IIASA/workflows/MATLAB/badge.svg)](https://github.com/mathworks/Database-Explorer-for-IIASA/actions?query=workflow%3AMATLAB) | [TestResults](https://mathworks.github.io/Climate-IAM-Explorer/test-results/report.html) [CodeCoverage](https://mathworks.github.io/Climate-IAM-Explorer/code-coverage/report.html)
 
 This repository contains a set of tools to allow users explore integrated assesmemnt models and [**some examples**](https://github.com/mathworks/Climate-IAM-Explorer/tree/master/examples) showcasing how one can use this information in conjuntion to financial applications. The models accessible by the tool include the [different datasets](https://iiasa.ac.at/web/home/research/researchPrograms/Energy/Databases.en.html) hosted by the IIASA Energy program (ENE), but it is extensible to your own custom models. These databases contain a series models that predict the evolution magnitudes including CO2, Energy Prices, and Population among others. Each prediction is based in different climate scenarios established by the model. To understand more about how the different scenarios are built, we recommend visiting the technical documentation for each database. In particular, the links below point the user to the technical documentation for the IAMC1.5 and NGFS datasets.
 </br>
