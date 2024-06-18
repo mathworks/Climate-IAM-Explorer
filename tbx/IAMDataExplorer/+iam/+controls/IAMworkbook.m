@@ -3,9 +3,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     properties (Access = public)
         
         MainGridLayout matlab.ui.container.GridLayout
-        
-        TabGroup      matlab.ui.container.TabGroup
-        PlottingTab   matlab.ui.container.Tab
+
         GridLayout    matlab.ui.container.GridLayout
         RegionsListBox                  matlab.ui.control.ListBox
         RegionsListBoxLabel             matlab.ui.control.Label
@@ -63,10 +61,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             
             g1 = uigridlayout([1 2], varargin{:});
             g1.ColumnWidth = {'1x', '2x'};
-            
-            g1.Padding = [0 0 0 0];
-            obj.MainGridLayout = g1;
-            
+
+            obj.MainGridLayout = g1;            
             obj.createComponents
             
         end
@@ -292,16 +288,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         end
         
         function sendDataToPlot(obj)
-            
-            switch obj.TabGroup.SelectedTab.Title
-                case "Plotting"                    
-                    obj.WbAxes.changeData(obj.FilteredData)
-                    
-                case "Analysis"
-                    tb = obj.FilteredData.summary();
-                    obj.IAMvars.Data = tb{:,:};
-                    obj.IAMvars.ColumnName = tb.Properties.VariableNames;
-            end
+
+            obj.WbAxes.changeData(obj.FilteredData)
             
         end
         
@@ -311,19 +299,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     methods (Access = private)
         
         % Create UIFigure and components
-        function createComponents(obj)
-            
-            % Create TabGroup
-            obj.TabGroup = uitabgroup(obj.MainGridLayout);
-            obj.TabGroup.Layout.Column = 2;
-            obj.TabGroup.SelectionChangedFcn = @(s,e) obj.sendDataToPlot();
+        function createComponents(obj)                     
 
-            % Create PlottingTab
-            obj.PlottingTab = uitab(obj.TabGroup);
-            obj.PlottingTab.Title = 'Plotting';
-            
-            obj.TabGroup.SelectedTab = obj.PlottingTab;
-            
             % Create GridLayout
             obj.GridLayout = uigridlayout(obj.MainGridLayout);
             obj.GridLayout.ColumnWidth = {'1x', '1x'};
@@ -332,17 +309,25 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             obj.GridLayout.RowSpacing = 0;
             obj.GridLayout.Padding = [0 0 0 0];
             obj.GridLayout.Layout.Row = 1;
-            obj.GridLayout.Layout.Column = 1;
+            obj.GridLayout.Layout.Column = 1;  
+            
             
             % Set Search Database Tab axis
-            obj.WbAxes = iam.views.IAMChart('Parent',obj.PlottingTab);
-            
+            obj.WbAxes = iam.views.IAMChart('Parent',obj.MainGridLayout);
+            obj.WbAxes.GridLayout.BackgroundColor = [0.23,0.29,0.22];
+            obj.WbAxes.UIAxes.XColor = 'w';
+            obj.WbAxes.UIAxes.YColor = 'w';
+            obj.WbAxes.UIAxes.GridColor = 'k';
+            obj.WbAxes.CheckBox.FontColor = 'w';
+            obj.WbAxes.Label.FontColor = 'w';
+
             % Create GridLayout2
             g2 = uigridlayout(obj.MainGridLayout, [5 4]);
             g2.Layout.Row = 1;
             g2.Layout.Column = 1;
             g2.RowHeight = {30, 30, '10x', 30, '10x'};
             g2.Padding = [5 5 5 5];
+            g2.BackgroundColor = [0.61,0.81,0.57];
             
             % Create ModelsListBox
             obj.ModelsListBox = uilistbox(g2);
