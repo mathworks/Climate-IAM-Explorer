@@ -18,6 +18,7 @@ classdef tUserInterfaces < matlab.uitest.TestCase
             testCase.verifyTrue(isvalid(h));
             delete(h);
         end
+        
     end
 
 end

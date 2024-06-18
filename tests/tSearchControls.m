@@ -34,10 +34,17 @@ classdef tSearchControls < matlab.uitest.TestCase
         end
 
         function tTree(tc)
-            load testData.mat myData
-            tc.app.loadData(myData)
-            d.SyncSelection("Consumption, United states");
-            tc.verifyEqual(d.Selected, "Consumption")
+            load test.mat field
+            % Fill tree, and one edit field appears
+            tc.app.addMetadataTree(field, "VARIABLES")
+            tc.verifyNotEmpty(tc.app.GenericEditField)
+
+            % Type info, chec synch
+            tc.type(tc.app.GenericEditField, "Consumption;; United states");
+            tc.press(tc.app.OpenTreeButton)
+            tc.verifyEqual(tc.app.GenericHTML.Selected, "Consumption");
+            tc.verifyEqual(tc.app.GenericEditField.Value, 'Consumption;; United states;;')
+
         end
     end
 
