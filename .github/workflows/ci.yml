@@ -16,14 +16,16 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
-    # Set up the job strategy matrix to define the different job configurations.
-    matrix:
+    
+    strategy:
+      # Set up the job strategy matrix to define the different job configurations.
+      matrix:
 
-      # List of platforms on which to run the tests.        
-      platform: [ ubuntu-latest ]
+        # List of platforms on which to run the tests.        
+        platform: [ ubuntu-latest ]
   
-      # List of MATLAB releases over which to run the tests.        
-      matlab-version: [ R2024a ]
+        # List of MATLAB releases over which to run the tests.        
+        matlab-version: [ R2024a ]
 
     # The type of runner that the job will run on
     runs-on: ${{ matrix.platform }}
