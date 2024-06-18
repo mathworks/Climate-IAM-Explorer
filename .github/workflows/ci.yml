@@ -48,7 +48,7 @@ jobs:
       # Upload test reports
       - name: Upload Artifact
         if: success() || failure()
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           # upload entire directory
           path: tests/reports
@@ -71,7 +71,7 @@ jobs:
       # Deploy reports to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
 
       # Publish the report address to GitHub Pages
       - name: Create Annotation with links
