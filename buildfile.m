@@ -34,7 +34,7 @@ opts.Summary = "App to explore Integrated Assessment Model results";
 opts.AppGalleryFiles = "tbx/IAMDataExplorer/app/IAMDataExplorer.mlapp";
 opts.ToolboxGettingStartedGuide = "tbx/doc/GettingStarted.mlx";
 opts.ToolboxName = "Climate IAM Explorer";
-opts.ToolboxVersion = "1.4.0";
+opts.ToolboxVersion = "1.3.4";
 opts.ToolboxMatlabPath = ["tbx/IAMDataExplorer", "tbx/IAMDataExplorer/app", "tbx/ISMIPExplorer"];
 opts.OutputFile = 'IAMDataExplorer.mltbx';
 
