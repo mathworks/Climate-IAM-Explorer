@@ -132,6 +132,10 @@ classdef IAMDocumentation < handle
             
         end
 
+    end
+
+    methods (Access = private)
+
         function showModelInfo(obj, event)
             
             obj.ScenarioInfoDropDown.Value = 0;

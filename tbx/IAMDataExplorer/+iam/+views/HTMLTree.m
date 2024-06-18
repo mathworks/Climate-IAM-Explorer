@@ -35,7 +35,7 @@ classdef HTMLTree < matlab.mixin.SetGet
             VarName = obj.Variables(str2double(event.ID));
             obj.LastChange = struct(VALUE = event.VALUE, NAME = VarName);
             if event.VALUE
-                obj.Selected = [obj.Selected;];
+                obj.Selected = [obj.Selected;VarName];
             else
                 obj.Selected = setdiff(obj.Selected, VarName);
             end
