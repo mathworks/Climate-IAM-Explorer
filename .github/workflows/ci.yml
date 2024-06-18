@@ -42,16 +42,16 @@ jobs:
       # Set up pages to show reports. This needs to run independent of the previous results.
       # Previous here is buildtool, since upload is canceled on failure
       - name: Setup Pages
-          if: success() || failure()
-          uses: actions/configure-pages@v3
+        if: success() || failure()
+        uses: actions/configure-pages@v3
 
       # Upload test reports
       - name: Upload Artifact
-          if: success() || failure()
-          uses: actions/upload-pages-artifact@v2
-          with:
-            # upload entire directory
-            path: tests/reports
+        if: success() || failure()
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # upload entire directory
+          path: tests/reports
     
   deploy-results:
     runs-on: ubuntu-latest
