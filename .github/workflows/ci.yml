@@ -23,14 +23,14 @@ jobs:
       platform: [ ubuntu-latest ]
   
       # List of MATLAB releases over which to run the tests.        
-      matlab-version: [ R2023b, R2024a ]
+      matlab-version: [ R2024a ]
 
     # The type of runner that the job will run on
     runs-on: ${{ matrix.platform }}
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-    
+
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
