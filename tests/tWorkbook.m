@@ -16,7 +16,7 @@ classdef tWorkbook < matlab.uitest.TestCase
         end
     end
 
-    methods (Test)
+    methods (Test, TestTags={'GUI'})
         % Test methods
 
         function tWorkflows(testCase)
