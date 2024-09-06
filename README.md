@@ -30,7 +30,7 @@ The repository contains a MATLAB app that contains a visual interface to some li
 
     IAMDataExplorer
     
-![](HowTo.gif)
+![](tbx/doc/HowTo.gif)
 
 The app will load the NGFS scenario by default, but this can be changed at will.
 

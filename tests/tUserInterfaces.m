@@ -3,7 +3,7 @@ classdef tUserInterfaces < matlab.uitest.TestCase
         App
     end
     methods (TestMethodSetup)
-        function loadApp(tc)
+        function loadApp(tc)            
             tc.App = IAMDataExplorer;
         end
     end
@@ -15,10 +15,8 @@ classdef tUserInterfaces < matlab.uitest.TestCase
             testCase.press(testCase.App.GuestLoginButton)
             testCase.verifyFalse(isvalid(testCase.App))
             h = findall(0,'Type','figure', 'Name','IAM Explorer');
-            t = timerfindall;
-            wait(t)
+            t = h.RunningAppInstance;
             testCase.verifyNotEmpty(t);
-
             testCase.verifyTrue(isvalid(h));
             delete(h);
         end
@@ -27,12 +25,8 @@ classdef tUserInterfaces < matlab.uitest.TestCase
             testCase.choose(testCase.App.BOCTab);
             testCase.press(testCase.App.LoginButton_3)
             h = findall(0,'Type','figure', 'Name','IAM Explorer');
-
-            t = timerfindall;
-            if ~isempty(t)
-                wait(t)
-            end
-
+            t = h.RunningAppInstance;
+            testCase.verifyNotEmpty(t);
             testCase.verifyTrue(isvalid(h));
             delete(h);
 

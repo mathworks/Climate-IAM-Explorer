@@ -3,9 +3,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     properties (Access = public)
         
         MainGridLayout matlab.ui.container.GridLayout
-        
-        TabGroup      matlab.ui.container.TabGroup
-        PlottingTab   matlab.ui.container.Tab
+
         GridLayout    matlab.ui.container.GridLayout
         RegionsListBox                  matlab.ui.control.ListBox
         RegionsListBoxLabel             matlab.ui.control.Label
@@ -63,10 +61,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             
             g1 = uigridlayout([1 2], varargin{:});
             g1.ColumnWidth = {'1x', '2x'};
-            
-            g1.Padding = [0 0 0 0];
-            obj.MainGridLayout = g1;
-            
+
+            obj.MainGridLayout = g1;            
             obj.createComponents
             
         end
@@ -231,8 +227,9 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
                 namevar = fields(var);
                 try
                     obj.addData(var.(namevar{1}));
-                catch
-                    uialert(obj.IAMExplorerUIFigure, 'Invalid data')
+                catch e
+                    f = ancestor(obj.MainGridLayout, 'figure', 'toplevel');
+                    uialert(f , e.message, 'Invalid Data', Icon = 'error');
                 end
             end
         end
@@ -259,12 +256,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
                 data = obj.Data;
             end
             
-            if isdeployed()
-                uisave('data')
-            else
-                var = inputdlg('Please select a name','Export to Workspace',1);
-                assignin('base', var{1}, data)
-            end
+            iam.utils.exportToWorspace(data)
         end
         
         % Value changed function: ModelsListBox
@@ -292,16 +284,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         end
         
         function sendDataToPlot(obj)
-            
-            switch obj.TabGroup.SelectedTab.Title
-                case "Plotting"                    
-                    obj.WbAxes.changeData(obj.FilteredData)
-                    
-                case "Analysis"
-                    tb = obj.FilteredData.summary();
-                    obj.IAMvars.Data = tb{:,:};
-                    obj.IAMvars.ColumnName = tb.Properties.VariableNames;
-            end
+
+            obj.WbAxes.changeData(obj.FilteredData)
             
         end
         
@@ -311,19 +295,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     methods (Access = private)
         
         % Create UIFigure and components
-        function createComponents(obj)
-            
-            % Create TabGroup
-            obj.TabGroup = uitabgroup(obj.MainGridLayout);
-            obj.TabGroup.Layout.Column = 2;
-            obj.TabGroup.SelectionChangedFcn = @(s,e) obj.sendDataToPlot();
+        function createComponents(obj)                     
 
-            % Create PlottingTab
-            obj.PlottingTab = uitab(obj.TabGroup);
-            obj.PlottingTab.Title = 'Plotting';
-            
-            obj.TabGroup.SelectedTab = obj.PlottingTab;
-            
             % Create GridLayout
             obj.GridLayout = uigridlayout(obj.MainGridLayout);
             obj.GridLayout.ColumnWidth = {'1x', '1x'};
@@ -332,103 +305,119 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             obj.GridLayout.RowSpacing = 0;
             obj.GridLayout.Padding = [0 0 0 0];
             obj.GridLayout.Layout.Row = 1;
-            obj.GridLayout.Layout.Column = 1;
+            obj.GridLayout.Layout.Column = 1;  
             
-            % Set Search Database Tab axis
-            obj.WbAxes = iam.views.IAMChart('Parent',obj.PlottingTab);
             
+            % Set Figure 
+            obj.WbAxes = iam.views.IAMChart('Parent',obj.MainGridLayout);
+            obj.WbAxes.GridLayout.BackgroundColor = [0.23,0.29,0.22];
+            obj.WbAxes.UIAxes.XColor = 'w';
+            obj.WbAxes.UIAxes.YColor = 'w';
+            obj.WbAxes.UIAxes.GridColor = 'k';
+            obj.WbAxes.CheckBox.FontColor = 'w';
+            obj.WbAxes.Label.FontColor = 'w';
+
             % Create GridLayout2
             g2 = uigridlayout(obj.MainGridLayout, [5 4]);
             g2.Layout.Row = 1;
             g2.Layout.Column = 1;
-            g2.RowHeight = {30, 30, '10x', 30, '10x'};
+            g2.RowHeight = {20, '10x', 20, '10x', 30};
             g2.Padding = [5 5 5 5];
+            g2.BackgroundColor = [0.61,0.81,0.57];
             
             % Create ModelsListBox
             obj.ModelsListBox = uilistbox(g2);
             obj.ModelsListBox.Items = {};
             obj.ModelsListBox.Multiselect = 'on';
             obj.ModelsListBox.ValueChangedFcn = @(s,e) obj.ModelsListBoxValueChanged();
-            obj.ModelsListBox.Layout.Row = 3;
+            obj.ModelsListBox.Layout.Row = 2;
             obj.ModelsListBox.Layout.Column = [1 2];
             obj.ModelsListBox.Value = {};
             
             % Create ModelsListBoxLabel
             obj.ModelsListBoxLabel = uilabel(g2);
-            obj.ModelsListBoxLabel.Layout.Row = 2;
+            obj.ModelsListBoxLabel.Layout.Row = 1;
             obj.ModelsListBoxLabel.Layout.Column = [1 2];
-            obj.ModelsListBoxLabel.Text = 'Models';
+            obj.ModelsListBoxLabel.Text = 'MODELS';
+            obj.ModelsListBoxLabel.FontWeight = "bold";
+            obj.ModelsListBoxLabel.HorizontalAlignment = "center";
             
             % Create ScenariosListBoxLabel
             obj.ScenariosListBoxLabel = uilabel(g2);
-            obj.ScenariosListBoxLabel.Layout.Row = 2;
+            obj.ScenariosListBoxLabel.Layout.Row = 1;
             obj.ScenariosListBoxLabel.Layout.Column = [3 4];
-            obj.ScenariosListBoxLabel.Text = 'Scenarios';
+            obj.ScenariosListBoxLabel.Text = 'SCENARIOS';
+            obj.ScenariosListBoxLabel.FontWeight = "bold";
+            obj.ScenariosListBoxLabel.HorizontalAlignment = "center";
             
             % Create ScenariosListBox
             obj.ScenariosListBox = uilistbox(g2);
             obj.ScenariosListBox.Items = {};
             obj.ScenariosListBox.Multiselect = 'on';
             obj.ScenariosListBox.ValueChangedFcn = @(s,e) obj.ScenariosListBoxValueChanged();
-            obj.ScenariosListBox.Layout.Row = 3;
+            obj.ScenariosListBox.Layout.Row = 2;
             obj.ScenariosListBox.Layout.Column = [3 4];
             obj.ScenariosListBox.Value = {};
             
             % Create VariablesListBoxLabel
             obj.VariablesListBoxLabel = uilabel(g2);
-            obj.VariablesListBoxLabel.Layout.Row = 4;
+            obj.VariablesListBoxLabel.Layout.Row = 3;
             obj.VariablesListBoxLabel.Layout.Column = [1 2];
-            obj.VariablesListBoxLabel.Text = 'Variables';
+            obj.VariablesListBoxLabel.Text = 'VARIABLES';
+            obj.VariablesListBoxLabel.FontWeight = "bold";
+            obj.VariablesListBoxLabel.HorizontalAlignment = "center";
             
             % Create VariablesListBox
             obj.VariablesListBox = uilistbox(g2);
             obj.VariablesListBox.Items = {};
             obj.VariablesListBox.Multiselect = 'on';
             obj.VariablesListBox.ValueChangedFcn = @(s,e) obj.VariablesListBoxValueChanged();
-            obj.VariablesListBox.Layout.Row = 5;
+            obj.VariablesListBox.Layout.Row = 4;
             obj.VariablesListBox.Layout.Column = [1 2];
             obj.VariablesListBox.Value = {};
             
             % Create RegionsListBoxLabel
             obj.RegionsListBoxLabel = uilabel(g2);
-            obj.RegionsListBoxLabel.Layout.Row = 4;
+            obj.RegionsListBoxLabel.Layout.Row = 3;
             obj.RegionsListBoxLabel.Layout.Column = [3 4];
-            obj.RegionsListBoxLabel.Text = 'Regions';
+            obj.RegionsListBoxLabel.Text = 'REGIONS';
+            obj.RegionsListBoxLabel.FontWeight = "bold";
+            obj.RegionsListBoxLabel.HorizontalAlignment = "center";
             
             % Create RegionsListBox
             obj.RegionsListBox = uilistbox(g2);
             obj.RegionsListBox.Items = {};
             obj.RegionsListBox.Multiselect = 'on';
             obj.RegionsListBox.ValueChangedFcn = @(s,e) obj.RegionsListBoxValueChanged();
-            obj.RegionsListBox.Layout.Row = 5;
+            obj.RegionsListBox.Layout.Row = 4;
             obj.RegionsListBox.Layout.Column = [3 4];
             obj.RegionsListBox.Value = {};
             
             % Create LoadWorkspaceButton
             obj.LoadWorkspaceButton = uibutton(g2, 'push');
-%             obj.LoadWorkspaceButton.ButtonPushedFcn = @(s,e) obj.LoadWorkspaceButtonPushed();
-            obj.LoadWorkspaceButton.Layout.Row = 1;
+            obj.LoadWorkspaceButton.ButtonPushedFcn = @(s,e) obj.LoadWorkspaceButtonPushed();
+            obj.LoadWorkspaceButton.Layout.Row = 5;
             obj.LoadWorkspaceButton.Layout.Column = 1;
             obj.LoadWorkspaceButton.Text = 'Load';
             
             % Create ExportSelectedButton
             obj.ExportSelectedButton = uibutton(g2, 'push');
             obj.ExportSelectedButton.ButtonPushedFcn =  @(s,e) obj.ExportSelectedButtonPushed;
-            obj.ExportSelectedButton.Layout.Row = 1;
+            obj.ExportSelectedButton.Layout.Row = 5;
             obj.ExportSelectedButton.Layout.Column = 2;
             obj.ExportSelectedButton.Text = 'Export';
             
             % Create ExportAllButton
             obj.ExportAllButton = uibutton(g2, 'push');
             obj.ExportAllButton.ButtonPushedFcn = @(s,e) obj.ExportAllButtonPushed;
-            obj.ExportAllButton.Layout.Row = 1;
+            obj.ExportAllButton.Layout.Row = 5;
             obj.ExportAllButton.Layout.Column = 3;
             obj.ExportAllButton.Text = 'Export All';
             
             % Create ClearWorkspaceButton
             obj.ClearWorkspaceButton = uibutton(g2, 'push');
             obj.ClearWorkspaceButton.ButtonPushedFcn = @(s,e) obj.ClearWorkspaceButtonPushed;
-            obj.ClearWorkspaceButton.Layout.Row = 1;
+            obj.ClearWorkspaceButton.Layout.Row = 5;
             obj.ClearWorkspaceButton.Layout.Column = 4;
             obj.ClearWorkspaceButton.Text = 'Clear';
             
