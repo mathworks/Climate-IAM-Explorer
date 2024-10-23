@@ -90,15 +90,7 @@ classdef OECMconnection < iam.data.Connection
                     data_raw.run_id(i) = current;
                 end
             end
-
-            % data_raw = movevars(data_raw, ["MODEL", "SCENARIO", "VARIABLE", "run_id", "UNIT"])
-
-            % data_raw.VARIABLE = string(data_raw.CL_VARIABLE ) + "|" + string(data_raw.CL_SECTOR );
-            % data_raw.CL_GEOGRAPHY = string(data_raw.CL_GEOGRAPHY);
-            % data_raw.CL_SCENARIO = string(data_raw.CL_SCENARIO);
-            % data_raw.CL_UNIT = string(data_raw.CL_UNIT);
-            % data_raw.CL_SECTOR = string(data_raw.CL_SECTOR);
-
+            
             obj.RawData = data_raw;
 
             data_raw = data_raw(:, ["MODEL", "SCENARIO", "REGION", "VARIABLE", "run_id", "UNIT"]);
@@ -107,12 +99,7 @@ classdef OECMconnection < iam.data.Connection
 
             obj.IC = ic;
             obj.IA = ia;
-            %
-            % data_raw.run_id = ones(height(data_raw),1);
-            % data_raw.unit = data_raw{ia, "CL_UNIT"};
-
-            % data_raw.model = repmat("CL", height(data_raw), 1);
-
+            
             obj.TimeseriesList = data_raw;
             obj.TimeseriesList.Properties.VariableNames = {'model', 'scenario', 'region', 'variable', 'run_id', 'unit'};
         end
@@ -216,7 +203,7 @@ classdef OECMconnection < iam.data.Connection
 
         function value = getDocumentation(~, ~, ~)
 
-            value = struct('description','Please visit the <a href="https://www.bankofcanada.ca/2022/01/climate-transition-scenario-data/" target="_blank">official LIMITS Website</a> for details ');
+            value = struct('description','Please visit "https://oneearth.uts.edu.au/" official One Earth Climate Model Website for details ');
 
         end
 
