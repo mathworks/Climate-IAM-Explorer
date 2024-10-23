@@ -24,7 +24,7 @@ classdef tUserInterfaces < matlab.uitest.TestCase
         function tBoC(testCase)
             testCase.choose(testCase.App.BOCTab);
             testCase.press(testCase.App.LoginButton_3)
-            h = findall(0,'Type','figure', 'Name','IAM Explorer');
+            h = findall(0,'Type','figure', 'Name','IAM Explorer');feature f
             t = h.RunningAppInstance;
             testCase.verifyNotEmpty(t);
             testCase.verifyTrue(isvalid(h));

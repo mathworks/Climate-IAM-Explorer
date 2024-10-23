@@ -64,6 +64,18 @@ classdef BANKOFCANADAconnection < iam.data.Connection
             obj.IA = ia;
 
             rl.run_id = ones(height(rl),1);
+            myRuns = configureDictionary('string','double');            
+            current = 0;
+            for i = 1 : height(rl)
+                if isKey(myRuns, rl.CL_SCENARIO(i))
+                    rl.run_id(i) = myRuns(rl.CL_SCENARIO(i));
+                else
+                    current = current + 1;
+                    myRuns(rl.CL_SCENARIO(i)) = current;
+                    rl.run_id(i) = current;
+                end
+            end
+
             rl.unit = data_raw{ia, "CL_UNIT"};
             
             rl.model = repmat("CL", height(rl), 1);
@@ -164,12 +176,12 @@ classdef BANKOFCANADAconnection < iam.data.Connection
         end
         
         function runs = getRunsList(obj)
-            runs = obj.TimeseriesList;            
+            runs = unique(obj.TimeseriesList(:,{'scenario', 'model','run_id'}), 'stable', 'rows');            
         end
         
          function value = getDocumentation(~, ~, ~)
             
-             value = struct('description','Please visit the <a href="https://www.bankofcanada.ca/2022/01/climate-transition-scenario-data/" target="_blank">official LIMITS Website</a> for details ');
+             value = struct('description','Please visit the <a href="https://www.bankofcanada.ca/2022/01/climate-transition-scenario-data/" target="_blank">official Bank of Canada Website</a> for details ');
             
          end
         
