@@ -10,7 +10,7 @@ This repository contains a set of tools to allow users explore integrated assesm
 </br>
 [Huppmann et al., Nature Climate Change (2018)](https://www.nature.com/articles/s41558-018-0317-4)
 </br>
-[NGFS Climate Scenarios Database](https://www.ngfs.net/sites/default/files/ngfs_climate_scenario_technical_documentation_final.pdf)
+[NGFS Climate Scenarios Database](https://www.ngfs.net/en/publications-and-statistics/publications/ngfs-climate-scenarios-central-banks-and-supervisors-phase-v)
 
 Please note that this tool is complementary to the more complete (IIASA Scenario Explorer](https://data.ene.iiasa.ac.at/auth/#/) and the main purpose is to allow getting the data directly into MATLAB.
 
