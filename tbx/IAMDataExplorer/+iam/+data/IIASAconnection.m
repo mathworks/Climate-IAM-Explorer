@@ -110,13 +110,10 @@ classdef IIASAconnection < iam.data.Connection
         function value = getDocumentation(obj, type, idx)
             
             url = strjoin([obj.Config.baseUrl, "docs"], "/");
-            
-            headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; 'Content-Type', 'application/json'};
-            options = weboptions('HeaderFields', headerFields, 'Timeout', 40, 'CertificateFilename', '');
-            
+
             input = sprintf("{""keys"": [ ""/%s/%d""]}",type, idx);
-            
-            value = webwrite(url, input, options);
+
+            value = obj.postRequest(url, input);
             
         end
         
@@ -444,7 +441,7 @@ classdef IIASAconnection < iam.data.Connection
                     for j = 1 : length(con)
                         switch con(j).path
                             case 'env'
-                                env = genvarname(con(j).value);
+                                env = string(con(j).value);
                             case 'productName'
                                 pname = con(j).value;
                             case 'uiUrl'
@@ -546,6 +543,9 @@ classdef IIASAconnection < iam.data.Connection
             
             if rsp.StatusCode == "OK"
                 res = rsp.Body.Data;
+            elseif rsp.StatusCode == "Unauthorized" && isfield(rsp.Body.Data, 'errorCode') && rsp.Body.Data.errorCode == "TOKEN_EXPIRED"
+                obj.refreshToken()
+                res = obj.getRequest(url, varargin{:});
             else
                 error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data.errorMessage)
             end
