@@ -22,14 +22,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     end
     
     properties (Dependent, SetAccess = private)
-        FilteredData (:,1) struct
-    end
-    
-    properties (SetAccess = private)
-        Data (:,1) iam.IAMTimeseries
-    end
-    
-    properties (Dependent, SetAccess = private)
+        FilteredData
         RunList
         NumDatasets
         Models
@@ -38,15 +31,16 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         Regions
     end
     
-    properties (Access = private)
-        IdxRegions   (:,1) logical
-        IdxModels    (:,1) logical
-        IdxScenarios (:,1) logical
-        IdxVariables (:,1) logical
+    properties (SetAccess = private)
+        Data
     end
     
-    properties (Dependent, Access = private)
-        IdxFilter
+    properties (Access = private)
+        SummaryData table = defaultRunList()
+        SelectedModels string = strings(0,1)
+        SelectedScenarios string = strings(0,1)
+        SelectedVariables string = strings(0,1)
+        SelectedRegions string = strings(0,1)
     end
     
     events
@@ -63,93 +57,44 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             g1.ColumnWidth = {'1x', '2x'};
 
             obj.MainGridLayout = g1;            
+            obj.Data = iam.IAMFrame();
             obj.createComponents
             
         end
         
         function addData(obj, data)
             
-            if ~isa(data, 'iam.IAMTimeseries')
-                error('data must be a IAMTimeseries object')
-            end
-            
-            if ~isempty(data)
-                
-                idx = ismember(obj.Data, data);
-                
-                obj.Data = [obj.Data; data(~idx,:)];
-                
-                obj.resetFilter();
-                
-                % set models
-                obj.ModelsListBox.Items = obj.Models;
-                obj.ModelsListBox.Value = obj.ModelsListBox.Items{1};
-                obj.removeFilter('Model');
-                obj.addFilter('Model', obj.ModelsListBox.Items{1})
-                
-                % set scenario
-                obj.ScenariosListBox.Items = obj.Scenarios;
-                obj.ScenariosListBox.Value = obj.ScenariosListBox.Items{1};
-                obj.removeFilter('Scenario');
-                obj.addFilter('Scenario', obj.ScenariosListBox.Items{1})
-                
-                % set variable (no repeated values allowed)
-                currentVariable = obj.VariablesListBox.Value;
-                obj.VariablesListBox.Items = obj.Variables;
-                if isempty(currentVariable)
-                    currentVariable = obj.VariablesListBox.Items{1};
-                end
-                obj.VariablesListBox.Value = currentVariable;
-                obj.addFilter('Variable', currentVariable)
-                
-                % set region
-                regions = obj.Regions;
-                obj.RegionsListBox.Items = regions;
-                
-                try
-                    obj.RegionsListBox.Value = {'World'};
-                    obj.addFilter('Region', 'World')
-                catch
-                    obj.RegionsListBox.Value = obj.RegionsListBox.Items{1};
-                    obj.addFilter('Region', obj.RegionsListBox.Items{1});
-                end
-                
+            if isa(data, 'iam.IAMTimeseries')
+                frame = data.toFrame();
+            elseif isa(data, 'iam.IAMFrame')
+                frame = data;
             else
-                obj.Data = data;
-                
-                obj.resetFilter();
-                
-                obj.ModelsListBox.Items = {};
-                obj.ScenariosListBox.Items = {};
-                obj.VariablesListBox.Items = {};
-                obj.RegionsListBox.Items = {};
+                error('data must be a IAMTimeseries or IAMFrame object')
             end
             
-            obj.WbAxes.changeData(obj.FilteredData)
+            if isempty(frame.toTable())
+                obj.Data = iam.IAMFrame();
+            else
+                obj.Data = mergeFramesUnique(obj.Data, frame);
+            end
+
+            obj.refreshState();
             
         end
         
         function resetFilter(obj)
-            
-            nd = obj.NumDatasets;
-            [obj.IdxModels, obj.IdxScenarios, ...
-                obj.IdxVariables, obj.IdxRegions] = deal(true(nd, 1));
-            
-            try
-                obj.IdxRegions = strcmpi(obj.RunList.Region,'World');
-            catch
-                obj.IdxRegions = true(nd, 1);
-            end
-            
+            obj.SelectedModels = strings(0,1);
+            obj.SelectedScenarios = strings(0,1);
+            obj.SelectedVariables = strings(0,1);
+            obj.SelectedRegions = strings(0,1);
         end
         
         function addFilter(obj, type, value)
-            idx = ismember([obj.Data.(type)] , value);
-            obj.modifyFilter(type, idx)
+            obj.modifyFilter(type, normalizeSelection(value))
         end
         
         function removeFilter(obj, type)
-            obj.modifyFilter(type, true(1, obj.NumDatasets))
+            obj.modifyFilter(type, strings(0,1))
         end
         
     end
@@ -157,54 +102,48 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
     methods % Accessors
         
         function values = get.RunList(obj)
-            ts = obj.Data;
-            values = table([ts.Model]', [ts.Scenario]', [ts.Variable]', [ts.Region]', [ts.RunId]',[ts.Version]', ...
-                'VariableNames', {'Model','Scenario','Variable','Region','RunId','Version'});
-        end
-        
-        function value = get.IdxFilter(obj)
-            value = obj.IdxModels & obj.IdxScenarios & obj.IdxRegions & obj.IdxVariables;
+            values = obj.SummaryData;
         end
         
         function value = get.FilteredData(obj)
-            value = obj.Data(obj.IdxFilter, :);
+            value = obj.getFilteredFrame().toTimeseries();
         end
         
         function value = get.NumDatasets(obj)
-            value = numel(obj.Data);
+            value = height(obj.SummaryData);
         end
         
         function value = get.Models(obj)
-            value = obj.Data.uniqueModels();
+            value = uniqueSummaryValue(obj.SummaryData, 'Model');
         end
         
         function value = get.Scenarios(obj)
-            value = obj.Data.uniqueScenarios();
+            value = uniqueSummaryValue(obj.SummaryData, 'Scenario');
         end
         
         function value = get.Variables(obj)
-            value = obj.Data.uniqueVariables();
+            value = uniqueSummaryValue(obj.SummaryData, 'Variable');
         end
         
         function value = get.Regions(obj)
-            value = obj.Data.uniqueRegions();
+            value = uniqueSummaryValue(obj.SummaryData, 'Region');
         end
         
     end
     
     methods (Access = private)
         
-        function modifyFilter(obj, type, idx)
+        function modifyFilter(obj, type, values)
             
             switch type
                 case 'Model'
-                    obj.IdxModels = idx;
+                    obj.SelectedModels = values;
                 case 'Scenario'
-                    obj.IdxScenarios = idx;
+                    obj.SelectedScenarios = values;
                 case 'Variable'
-                    obj.IdxVariables = idx;
+                    obj.SelectedVariables = values;
                 case 'Region'
-                    obj.IdxRegions = idx;
+                    obj.SelectedRegions = values;
             end
             
         end
@@ -236,7 +175,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         
         % Button pushed function: ClearWorkspaceButton
         function ClearWorkspaceButtonPushed(obj)
-            obj.addData(iam.IAMTimeseries.empty());
+            obj.addData(iam.IAMFrame());
         end
         
         % Button pushed function: ExportAllButton
@@ -253,7 +192,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             if filter
                 data = obj.FilteredData;
             else
-                data = obj.Data;
+                data = obj.Data.toTimeseries();
             end
             
             iam.utils.exportToWorspace(data)
@@ -287,6 +226,77 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
 
             obj.WbAxes.changeData(obj.FilteredData)
             
+        end
+
+        function frame = getFilteredFrame(obj)
+            if isempty(obj.Data.toTable())
+                frame = iam.IAMFrame();
+                return
+            end
+
+            frame = obj.Data.filter( ...
+                'models', obj.SelectedModels, ...
+                'scenarios', obj.SelectedScenarios, ...
+                'variables', obj.SelectedVariables, ...
+                'regions', obj.SelectedRegions, ...
+                'strict', true);
+        end
+
+        function refreshState(obj)
+            obj.resetFilter();
+
+            if isempty(obj.Data.toTable())
+                obj.SummaryData = defaultRunList();
+                obj.ModelsListBox.Items = {};
+                obj.ModelsListBox.Value = {};
+                obj.ScenariosListBox.Items = {};
+                obj.ScenariosListBox.Value = {};
+                obj.VariablesListBox.Items = {};
+                obj.VariablesListBox.Value = {};
+                obj.RegionsListBox.Items = {};
+                obj.RegionsListBox.Value = {};
+                obj.sendDataToPlot();
+                return
+            end
+
+            obj.SummaryData = obj.Data.summary();
+            obj.SummaryData = obj.SummaryData(:, {'Model','Scenario','Variable','Region','RunId','Version'});
+
+            obj.ModelsListBox.Items = cellstr(obj.Models);
+            obj.ScenariosListBox.Items = cellstr(obj.Scenarios);
+            obj.VariablesListBox.Items = cellstr(obj.Variables);
+            obj.RegionsListBox.Items = cellstr(obj.Regions);
+
+            if ~isempty(obj.ModelsListBox.Items)
+                obj.ModelsListBox.Value = obj.ModelsListBox.Items(1);
+                obj.addFilter('Model', obj.ModelsListBox.Value)
+            else
+                obj.ModelsListBox.Value = {};
+            end
+
+            if ~isempty(obj.ScenariosListBox.Items)
+                obj.ScenariosListBox.Value = obj.ScenariosListBox.Items(1);
+                obj.addFilter('Scenario', obj.ScenariosListBox.Value)
+            else
+                obj.ScenariosListBox.Value = {};
+            end
+
+            currentVariable = normalizeSelection(obj.VariablesListBox.Value);
+            if isempty(currentVariable) || ~all(ismember(currentVariable, obj.Variables))
+                currentVariable = obj.Variables(1);
+            end
+            obj.VariablesListBox.Value = cellstr(currentVariable);
+            obj.addFilter('Variable', currentVariable)
+
+            if any(matches(obj.Regions, "World", 'IgnoreCase', true))
+                defaultRegion = "World";
+            else
+                defaultRegion = obj.Regions(1);
+            end
+            obj.RegionsListBox.Value = cellstr(defaultRegion);
+            obj.addFilter('Region', defaultRegion)
+
+            obj.sendDataToPlot();
         end
         
     end
@@ -426,4 +436,72 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         end
     end
     
+end
+
+function value = uniqueSummaryValue(summaryData, fieldName)
+if isempty(summaryData)
+    value = strings(0,1);
+else
+    value = unique(summaryData.(fieldName));
+end
+end
+
+function values = normalizeSelection(value)
+if isempty(value)
+    values = strings(0,1);
+else
+    values = string(value(:));
+    values = values(strlength(values) > 0);
+end
+end
+
+function tb = defaultRunList()
+tb = table('Size', [0, 6], ...
+    'VariableNames', {'Model','Scenario','Variable','Region','RunId','Version'}, ...
+    'VariableTypes', {'string','string','string','string','double','double'});
+end
+
+function frame = mergeFramesUnique(leftFrame, rightFrame)
+leftData = leftFrame.toTable();
+rightData = rightFrame.toTable();
+
+if isempty(leftData)
+    frame = rightFrame;
+    return
+end
+
+if isempty(rightData)
+    frame = leftFrame;
+    return
+end
+
+data = [leftData; rightData];
+[~, ia] = unique(data(:, {'Model','Scenario','Variable','Region','Unit','RunId','Version','Year'}), 'rows', 'stable');
+data = data(sort(ia), :);
+
+runInfo = mergeRunInfoTables(leftFrame.RunInfo, rightFrame.RunInfo);
+frame = iam.IAMFrame(data, 'RunInfo', runInfo);
+end
+
+function runInfo = mergeRunInfoTables(leftInfo, rightInfo)
+if isempty(leftInfo)
+    runInfo = rightInfo;
+    return
+end
+
+if isempty(rightInfo)
+    runInfo = leftInfo;
+    return
+end
+
+if ~isequal(leftInfo.Properties.VariableNames, rightInfo.Properties.VariableNames)
+    runInfo = leftInfo;
+    return
+end
+
+runInfo = [leftInfo; rightInfo];
+if ismember('run_id', runInfo.Properties.VariableNames)
+    [~, ia] = unique(runInfo.run_id, 'stable');
+    runInfo = runInfo(ia, :);
+end
 end

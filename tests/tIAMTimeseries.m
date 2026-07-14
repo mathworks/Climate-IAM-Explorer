@@ -1,0 +1,78 @@
+classdef tIAMTimeseries < matlab.unittest.TestCase
+
+    methods (TestClassSetup)
+        function addToolboxToPath(tc)
+            root = fileparts(fileparts(mfilename('fullpath')));
+            tc.applyFixture(matlab.unittest.fixtures.PathFixture( ...
+                fullfile(root, 'tbx', 'IAMDataExplorer')));
+        end
+    end
+
+    methods (Test, TestTags = {'Unit'})
+        function testNoArgConstructorReturnsScalarDefault(tc)
+            tc.verifyError(@() iam.IAMTimeseries(), 'MATLAB:minrhs')
+        end
+
+        function testExplicitEmptyMatrixReturnsEmptyObject(tc)
+            ts = iam.IAMTimeseries([]);
+
+            tc.verifyClass(ts, 'iam.IAMTimeseries')
+            tc.verifyEmpty(ts)
+            tc.verifySize(ts, [0 0])
+        end
+
+        function testExplicitEmptyStructReturnsEmptyObject(tc)
+            ts = iam.IAMTimeseries(struct.empty());
+
+            tc.verifyClass(ts, 'iam.IAMTimeseries')
+            tc.verifyEmpty(ts)
+            tc.verifySize(ts, [0 0])
+        end
+
+        function testNonEmptyStructBuildsTimeseries(tc)
+            dates = datetime([2020; 2030], 1, 1, 'Format', 'yyyy');
+            input = struct( ...
+                'model', "Model A", ...
+                'scenario', "Scenario A", ...
+                'variable', "Primary Energy", ...
+                'region', "World", ...
+                'unit', "EJ/yr", ...
+                'runId', 101, ...
+                'version', 1, ...
+                'years', year(dates), ...
+                'values', timetable(dates, [1; 2], ...
+                    'DimensionNames', {'Year', 'VariableUnits'}, ...
+                    'VariableNames', {'Values'}));
+
+            ts = iam.IAMTimeseries(input);
+
+            tc.verifySize(ts, [1 1])
+            tc.verifyEqual(ts.Model, "Model A")
+            tc.verifyEqual(ts.Years, [2020; 2030])
+            tc.verifyEqual(ts.Values{:,:}, [1; 2])
+        end
+
+        function testArithmeticStillWorksWithInternalGenericConstruction(tc)
+            dates = datetime([2020; 2030], 1, 1, 'Format', 'yyyy');
+            input = struct( ...
+                'model', "Model A", ...
+                'scenario', "Scenario A", ...
+                'variable', "Primary Energy", ...
+                'region', "World", ...
+                'unit', "EJ/yr", ...
+                'runId', 101, ...
+                'version', 1, ...
+                'years', year(dates), ...
+                'values', timetable(dates, [1; 2], ...
+                    'DimensionNames', {'Year', 'VariableUnits'}, ...
+                    'VariableNames', {'Values'}));
+
+            ts = iam.IAMTimeseries(input);
+            out = ts + ts;
+
+            tc.verifySize(out, [1 1])
+            tc.verifyEqual(out.Values{:,:}, [2; 4])
+            tc.verifyEqual(out.Model, "Custom")
+        end
+    end
+end

@@ -25,7 +25,7 @@ jobs:
         platform: [ ubuntu-latest ]
   
         # List of MATLAB releases over which to run the tests.        
-        matlab-version: [ R2024a ]
+        matlab-version: [ R2024a, R2026a ]
 
     # The type of runner that the job will run on
     runs-on: ${{ matrix.platform }}
@@ -34,7 +34,7 @@ jobs:
     steps:
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Add a display to run App tests
       - name: Set up display on Linux
@@ -46,11 +46,11 @@ jobs:
       
       # Sets up MATLAB on the GitHub Actions runner
       - name: Setup MATLAB
-        uses: matlab-actions/setup-matlab@v2
+        uses: matlab-actions/setup-matlab@v3
 
       # Runs buildtool, code issues + tests + toolboxPackaging
       - name: Run build
-        uses: matlab-actions/run-build@v2
+        uses: matlab-actions/run-build@v3
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -68,7 +68,7 @@ jobs:
       # Upload test reports
       - name: Upload Artifact
         if: success() || failure()
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           # upload entire directory
           path: tests/reports
@@ -91,7 +91,7 @@ jobs:
       # Deploy reports to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       # Publish the report address to GitHub Pages
       - name: Create Annotation with links

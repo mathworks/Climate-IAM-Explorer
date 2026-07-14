@@ -322,14 +322,30 @@ classdef IIASAconnection < iam.data.Connection
             idx_productName = matches(obj.AllEnvironments.productName, value,'IgnoreCase',true);
             idx_env = matches(obj.AllEnvironments.env, value,'IgnoreCase',true);
             
-            idx = idx_name | idx_productName | idx_env;
+            if nnz(idx_name) == 1
+                idx = idx_name;
+            elseif nnz(idx_productName) == 1
+                idx = idx_productName;
+            elseif nnz(idx_env) == 1
+                idx = idx_env;
+            else
+                idx = idx_name | idx_productName | idx_env;
+            end
             
             if ~any(idx)
                 error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of: " + strjoin(obj.AllEnvironments.env,', '))
             end
             
             if nnz(idx) > 1
-               idx = find(idx, 1); 
+                if nnz(idx_env) > 1
+                    error('IIASAConnection:ambiguousEnvironmentAlias', ...
+                        "Environment alias '" + string(value) + "' is ambiguous. Use one of: " + ...
+                        strjoin(obj.AllEnvironments.name(idx_env), ', '))
+                end
+
+                error('IIASAConnection:ambiguousEnvironmentSelection', ...
+                    "Environment '" + string(value) + "' matches multiple entries. Use one of: " + ...
+                    strjoin(obj.AllEnvironments.name(idx), ', '))
             end
             
             obj.getEnvConfig( obj.AllEnvironments(idx, :) )
@@ -455,6 +471,16 @@ classdef IIASAconnection < iam.data.Connection
 
             % sort environments alphabetically
             tb = sortrows(tb, "env", "ascend");
+
+            validEnv = tb.env(tb.env ~= "");
+            [uniqueEnv, ~, envGroup] = unique(validEnv);
+            envCounts = accumarray(envGroup, 1);
+            duplicateEnv = uniqueEnv(envCounts > 1);
+            duplicateEnv(duplicateEnv == "") = [];
+            for i = 1 : numel(duplicateEnv)
+                warning('IIASAConnection:DuplicateEnvironmentAlias', ...
+                    "Duplicate environment alias '" + duplicateEnv(i) + "' detected. Use name or productName to select a connection.")
+            end
             
             obj.AllEnvironments = tb;
             

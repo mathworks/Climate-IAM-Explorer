@@ -1,7 +1,40 @@
 classdef IAMTimeseries
-    
-    % Copyright 2020-2021 The MathWorks, Inc.
-    
+% IAMTimeseries Timeseries container for Integrated Assessment Model data
+%
+% IAMTimeseries stores time series data from Integrated Assessment Models
+% (IAMs) along with metadata such as model, scenario, variable, region,
+% unit, run id and version. Each element of an IAMTimeseries array
+% contains a timetable in the `Values` property with a Year time vector.
+%
+% Construction
+%   obj = IAMTimeseries(Data)
+%     Construct an array of IAMTimeseries objects from a struct or object
+%     array `Data` that contains fields: model, scenario, variable,
+%     region, unit, runId, version, years (datetime vector), values
+%     (numeric vector or timetable).
+%
+% Conversion and Display
+%   tt = toTable(obj)     - Convert synchronized Values to a timetable
+%   frame = toFrame(obj)  - Convert to an iam.IAMFrame object
+%   [h,l] = plot(obj, ...) - Plot the series; returns plot handles and legend
+%   [h,l] = bar(obj, ...)  - Bar chart of the series
+%
+% Metadata and Utilities
+%   tb = summary(obj)      - Return a table summarizing the array
+%   lst = getRunList(obj)  - Return a table listing model/run metadata
+%   uniqueRegions(obj), uniqueVariables(obj), uniqueModels(obj),
+%   uniqueScenarios(obj)  - Return unique values for those fields
+%
+% Arithmetic
+%   r = plus(obj1,obj2)    - Elementwise addition (synchronizes timetables)
+%   r = minus(obj1,obj2)   - Elementwise subtraction
+%   r = times(obj1,obj2)   - Elementwise multiplication
+%   r = rdivide(obj1,obj2) - Elementwise right division
+%
+% See also TIMETABLE, SYNCHRONIZE
+
+% Copyright 2020-2026 The MathWorks, Inc.
+
     properties (SetAccess = private)
         Model    (1,1) string
         Scenario (1,1) string
@@ -13,90 +46,99 @@ classdef IAMTimeseries
         Years    (:,1) double
         Values   (:,:) timetable
     end
-    
+
     methods
         idx = ismember(obj, ts)
     end
-    
+
     methods
-        
+
         function obj = IAMTimeseries(Data)
-            
-            if nargin > 0 && ~isempty(Data)
-                
-                m = size(Data,1);
-                n = size(Data,2);
-                obj = repelem(obj,n,m);
-                
-                for i = 1 : numel(Data)
-                    data = Data(i);
-                    obj(i).Model = data.model;
-                    obj(i).Scenario = data.scenario;
-                    obj(i).Variable = data.variable;
-                    obj(i).Region = data.region;
-                    obj(i).Unit = data.unit;
-                    obj(i).RunId = data.runId;
-                    obj(i).Version = data.version;
-                    obj(i).Years = data.years;
-                    obj(i).Values = data.values;
-                end
-                
+
+            arguments
+                Data struct
             end
-            
-        end 
-        
+
+            if isempty(Data)
+                obj = obj([]);
+                return
+            end
+
+            m = size(Data,1);
+            n = size(Data,2);
+            obj = repelem(obj,n,m);
+
+            for i = 1 : numel(Data)
+                data = Data(i);
+                obj(i).Model = data.model;
+                obj(i).Scenario = data.scenario;
+                obj(i).Variable = data.variable;
+                obj(i).Region = data.region;
+                obj(i).Unit = data.unit;
+                obj(i).RunId = data.runId;
+                obj(i).Version = data.version;
+                obj(i).Years = data.years;
+                obj(i).Values = data.values;
+            end
+
+        end
+
         function tt = toTable(obj)
             tt = synchronize(obj.Values);
         end
-        
+
+        function frame = toFrame(obj)
+            frame = iam.IAMFrame(obj);
+        end
+
         function tb = summary(obj)
             tb = table((1:numel(obj))',[obj.Model]', [obj.Scenario]', [obj.Region]', [obj.Variable]', [obj.Unit]', ...
                 'VariableNames', {'ts','Model','Scenario','Region','Variable','Unit'});
         end
-        
-        function r = plus(obj1, obj2) 
-            
-            tt = synchronize(obj1.Values, obj2.Values);            
+
+        function r = plus(obj1, obj2)
+
+            tt = synchronize(obj1.Values, obj2.Values);
             lim = numel(obj1);
             newValues = tt{:, 1:lim} + tt{:, lim+1:end};
-            
+
             r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
-            
+
         end
-        
+
         function r = minus(obj1, obj2)
-                        
+
             tt = synchronize(obj1.Values, obj2.Values);
             lim = numel(obj1);
             newValues = tt{:, 1:lim} - tt{:, lim+1:end};
-            
+
             r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
         end
-        
+
         function r = times(obj1, obj2)
-                        
+
             tt = synchronize(obj1.Values, obj2.Values);
             lim = numel(obj1);
             newValues = tt{:, 1:lim}.*tt{:, lim+1:end};
-            
+
             r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
         end
-        
+
         function r = rdivide(obj1, obj2)
-                        
+
             tt = synchronize(obj1.Values, obj2.Values);
             lim = numel(obj1);
             newValues = tt{:, 1:lim}./tt{:, lim+1:end};
-            
+
             r = iam.IAMTimeseries.getGeneric(newValues, tt.Year);
         end
-        
+
         function [h,l] = plot(obj, varargin)
-            
+
             if ~isempty(obj)
                 allVars = synchronize(obj.Values);
                 h = plot(allVars.Year, allVars{:,:}, varargin{:});
-                
+
                 axis(h(1).Parent,'tight');
                 xlabel(h(1).Parent,'Years');
 
@@ -112,15 +154,15 @@ classdef IAMTimeseries
             else
                 h = [];
             end
-                         
+
         end
-        
+
         function [h,l] = bar(obj, varargin)
-            
+
             if ~isempty(obj)
                 allVars = synchronize(obj.Values);
                 h = bar(allVars.Year, allVars{:,:}, varargin{:});
-                
+
                 axis(h(1).Parent,'tight');
                 xlabel(h(1).Parent,'Years');
 
@@ -136,48 +178,49 @@ classdef IAMTimeseries
             else
                 h = [];
             end
-            
+
         end
-        
+
         function value = uniqueRegions(obj)
-           value = unique([obj.Region]); 
+            value = unique([obj.Region]);
         end
-        
+
         function value = uniqueVariables(obj)
-           value = unique([obj.Variable]); 
+            value = unique([obj.Variable]);
         end
-        
+
         function value = uniqueModels(obj)
-           value = unique([obj.Model]); 
+            value = unique([obj.Model]);
         end
-        
+
         function value = uniqueScenarios(obj)
-           value = unique([obj.Scenario]); 
+            value = unique([obj.Scenario]);
         end
-        
+
         function lst = getRunList(obj)
             lst = table( ...
                 [obj.Model]',[obj.Scenario]',[obj.Variable]',[obj.Region]',[obj.RunId]',[obj.Version]', ...
                 'VariableNames',{'Model','Scenario','Variable','Region','RunId','Version'}...
                 );
         end
-        
+
     end
-    
+
     methods (Static, Access = private)
-        
-        function r = getGeneric(newValues, date) 
-            
-            r = iam.IAMTimeseries();
-            
-            r.Model    = "Custom";
-            r.Scenario = "Custom";
-            r.Variable = "Custom";
-            r.Region   = "Custom";
-            r.Unit     = "Custom";
-            r.RunId    = NaN;
-            r.Version  = NaN;
-            
+
+        function r = getGeneric(newValues, date)
+
+            r = iam.IAMTimeseries(struct( ...
+                'model', "Custom", ...
+                'scenario', "Custom", ...
+                'variable', "Custom", ...
+                'region', "Custom", ...
+                'unit', "Custom", ...
+                'runId', NaN, ...
+                'version', NaN, ...
+                'years', zeros(0,1), ...
+                'values', timetable()));
+
             r = repmat(r, size(newValues, 2), 1);
             Y = year(date);
             for i = 1 : size(newValues, 2)
@@ -185,10 +228,10 @@ classdef IAMTimeseries
                 r(i).Values = timetable(date, newValues(:,i), ...
                     'DimensionNames', {'Year','VariableUnits'}, 'VariableNames',{'Values'});
             end
-            
+
         end
     end
-    
+
 end
 
 function str = igetLegend(dt)
@@ -201,7 +244,7 @@ str = iaddVarToLegend(str,'Region',[dt.Region]);
 str = iaddVarToLegend(str,'Id',[dt.RunId]);
 
 if isscalar(str)
-    str = "Region = " + unique(dt.Region);
+    str = "Region = " + dt(1).Region;
 end
 
 end

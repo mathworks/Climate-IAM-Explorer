@@ -10,10 +10,10 @@ fc = matlab.buildtool.io.FileCollection.fromPaths('tbx/**/*.m');
 plan("check") = CodeIssuesTask(fc, WarningThreshold = 0);
 
 % Add the "test" task to run tests
-plan("test") = TestTask('tests', Tag = ["GUI", "UNIT"], ...
+plan("test") = TestTask('tests', Tag = ["GUI", "UNIT", "Unit"], ...
     SourceFiles="tbx", OutputDetail = 2, ...
-    TestResults = "tests/reports/test-results/report.html", ...
-    CodeCoverageResults="tests/reports/code-coverage/report.html");
+    TestResults = "public/results.html", ...
+    CodeCoverageResults= ["public/coverage.html",  "public/coverage.xml"]);
 
 % Make the "archive" task the default task in the plan
 plan.DefaultTasks = "archive";
@@ -24,6 +24,9 @@ end
 
 function archiveTask(~)
 % Create ZIP file
+
+v = ver('IAMDataExplorer');
+
 opts = matlab.addons.toolbox.ToolboxOptions('tbx', '5ed2c037-ac9c-4feb-8032-469d0a2b0285');
 
 opts.AuthorName = "Eduard Benet";
@@ -34,9 +37,9 @@ opts.Summary = "App to explore Integrated Assessment Model results";
 opts.AppGalleryFiles = "tbx/IAMDataExplorer/app/IAMDataExplorer.mlapp";
 opts.ToolboxGettingStartedGuide = "tbx/doc/GettingStarted.mlx";
 opts.ToolboxName = "Climate IAM Explorer";
-opts.ToolboxVersion = "1.4.0";
+opts.ToolboxVersion = v.Version;
 opts.ToolboxMatlabPath = ["tbx/IAMDataExplorer", "tbx/IAMDataExplorer/app", "tbx/ISMIPExplorer"];
-opts.OutputFile = 'IAMDataExplorer.mltbx';
+opts.OutputFile = 'releases/IAMDataExplorer.mltbx';
 
 matlab.addons.toolbox.packageToolbox(opts)
 end

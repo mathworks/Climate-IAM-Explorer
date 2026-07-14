@@ -18,7 +18,7 @@ classdef IAMEnvironment < matlab.mixin.SetGet
         RunList   table = table('Size',[0, 17], ...
             'VariableNames', {'model', 'scenario', 'scheme', 'annotation', 'metadata', 'run_id', 'model_id', 'scen_id', 'is_default', 'is_locked', 'cre_user', 'cre_date', 'upd_user', 'upd_date', 'lock_user', 'lock_date', 'version'}, ...
             'VariableTypes', {'string', 'string', 'double', 'string', 'struct', 'double', 'double', 'double', 'logical', 'logical', 'string', 'string', 'double', 'double', 'double', 'double', 'double'});
-        Metadata
+        Metadata struct = struct()
     end
     
     methods
@@ -76,8 +76,23 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             ts = obj.Connection.getBulkData( ...
                 'runs', runIds, ...
                 'variables', variables, ...
-                'regions', regions);
+                'regions', regions, ...
+                'years', r.years, ...
+                'units', r.units, ...
+                'timeslices', r.timeslices);
             
+        end
+
+        function frame = getFrame(obj, varargin)
+            ts = obj.getTimeSeries(varargin{:});
+            if ~isa(ts, 'iam.IAMTimeseries')
+                error('IAMEnvironment:getFrame:InvalidResponse', ...
+                    'getFrame requires the connection to return IAMTimeseries data.')
+            end
+
+            frame = ts.toFrame();
+            frame = iam.IAMFrame(frame.toTable(), ...
+                'RunInfo', obj.RunList(ismember(obj.RunList.run_id, frame.RunIds), :));
         end
         
         function doc = getModelDocumentation(obj,modelID)            
@@ -125,19 +140,13 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             addParameter(p, 'metadata', struct.empty(), @(x) checkValidMetadata(x, obj.Metadata))
             
             parse(p, varargin{:});
-            
-            if p.Results.strict
-                fcn = @(x,y) ismember(x, y);
-            else
-                fcn = @(x,y) contains(x, y, 'IgnoreCase', true);
-            end
-            
+
             idx = true(height(obj.RunList),1);
             if ~isempty(p.Results.models)
-                idx = idx & fcn(obj.RunList.model, p.Results.models);
+                idx = idx & matchStringValues(obj.RunList.model, p.Results.models, p.Results.strict);
             end
             if ~isempty(p.Results.scenarios)
-                idx = idx & fcn(obj.RunList.scenario, p.Results.scenarios);
+                idx = idx & matchStringValues(obj.RunList.scenario, p.Results.scenarios, p.Results.strict);
             end
             if ~isempty(p.Results.runs)
                 idx = idx & ismember(obj.RunList.run_id, p.Results.runs);
@@ -145,9 +154,9 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             
             if ~isempty(p.Results.metadata)
                 for f = fields(p.Results.metadata)
-                    vars = fields(obj.Metadata);
-                    fi = contains(vars, f{1},'IgnoreCase', true);
-                    idx = idx & contains({obj.RunList.metadata.(vars{fi})}', p.Results.metadata.(f{1}));
+                    fieldName = resolveMetadataFieldName(obj.Metadata, f{1});
+                    values = metadataValuesAsString(obj.RunList.metadata, fieldName);
+                    idx = idx & matchStringValues(values, p.Results.metadata.(f{1}), p.Results.strict);
                 end
             end
             
@@ -168,36 +177,15 @@ classdef IAMEnvironment < matlab.mixin.SetGet
         function setEnvironment(obj)
             
             refs = obj.Connection.getRefs();
-            
-            obj.Models    = refs.models;
-            obj.Scenarios = refs.scenarios;
-            obj.Variables = refs.variables;
-            obj.Regions   = refs.regions;
-            
-%             if ~isempty(refs)
-%                 
-%                 models = [refs.models{:}]';
-%                 obj.Models = toString(cell2table(models(2:end,:),'VariableNames',models(1,:)));
-%                 
-%                 scenarios = [refs.scenarios{:}]';
-%                 obj.Scenarios = toString(cell2table(scenarios(2:end,:),'VariableNames',scenarios(1,:)));
-%                 
-%                 variables = [refs.variables{:}]';
-%                 obj.Variables = toString(cell2table(variables(2:end,:),'VariableNames',variables(1,:)));
-%                 
-%                 regions = [refs.regions{:}]';
-%                 obj.Regions = toString(cell2table(regions(2:end,:),'VariableNames',regions(1,:)));
-%                 
-%             end
-            
-%             metadata = obj.Connection.getMetadata();
-            
-%             for i = 1 : height(metadata)
-%                 obj.Metadata.(genvarname(metadata.name{i})) = obj.Connection.getMetadataDetails(metadata.name{i});
-%             end
+            obj.Models = getRefTable(refs, 'models', obj.Models);
+            obj.Scenarios = getRefTable(refs, 'scenarios', obj.Scenarios);
+            obj.Variables = getRefTable(refs, 'variables', obj.Variables);
+            obj.Regions = getRefTable(refs, 'regions', obj.Regions);
+
+            obj.Metadata = loadMetadataDefinitions(obj.Connection);
             
             runs = obj.Connection.getRunsList();
-%             runs = parseRunsMetadata(runs, metadata);
+            runs = normalizeRunsMetadata(runs, obj.Metadata, obj.RunList([],:));
             obj.RunList = toString(runs);
             
         end
@@ -208,9 +196,9 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             end
             
             if strict
-                fcn = @(x,y) ismember(lower(x), lower(y));
+                fcn = @(x,y) matchStringValues(x, y, true);
             else
-                fcn = @(x,y) contains(x, y, 'IgnoreCase', true);
+                fcn = @(x,y) matchStringValues(x, y, false);
             end
             
             idx = true(height(obj.(var)),1);
@@ -233,38 +221,209 @@ for i = vars
         tb.(field) = string(tb.(field));
     end
 end
-
 end
 
-% function runs = parseRunsMetadata(runs, metadata)
-% for i = 1 : height(runs)
-%     md = runs{i,'metadata'}{1};
-%     for j = 1 : height(metadata)
-%         name = metadata.name{j};
-%         type = metadata.type{j};
-%         if ~isfield(md,name)
-%             switch type
-%                 case 'string value'
-%                     md.(genvarname(name)) = "";
-%                     runs{i,'metadata'}{1} = md;
-%                 case 'numeric value'
-%                     md.(genvarname(name)) = [];
-%                     runs{i,'metadata'}{1} = md;
-%                 case 'boolean value'
-%                     md.(genvarname(name)) = logical.empty();
-%                     runs{i,'metadata'}{1} = md;
-%                 otherwise
-%                     error('Unsupported')
-%             end
-%         end
-% 
-%     end
-% 
-% end
+function value = getRefTable(refs, fieldName, template)
+if isstruct(refs) && isfield(refs, fieldName) && istable(refs.(fieldName))
+    value = refs.(fieldName);
+else
+    value = template([],:);
+end
+end
 
-% runs.metadata = [runs.metadata{:}]';
-% 
-% end
+function metadata = loadMetadataDefinitions(connection)
+metadata = struct();
+
+if ~ismethod(connection, 'getMetadataCategories')
+    return
+end
+
+try
+    categories = connection.getMetadataCategories();
+catch
+    return
+end
+
+if isempty(categories) || ~ismember("name", categories.Properties.VariableNames)
+    return
+end
+
+names = string(categories.name);
+types = strings(size(names));
+if ismember("type", categories.Properties.VariableNames)
+    types = string(categories.type);
+end
+
+fieldNames = matlab.lang.makeUniqueStrings(matlab.lang.makeValidName(cellstr(names)));
+for i = 1 : numel(names)
+    if strlength(types(i)) == 0 && ismethod(connection, 'getMetadataDetails')
+        try
+            details = connection.getMetadataDetails(names(i));
+            types(i) = extractMetadataType(details);
+        catch
+            types(i) = "";
+        end
+    end
+
+    metadata.(fieldNames{i}) = struct( ...
+        'OriginalName', names(i), ...
+        'Type', types(i), ...
+        'DefaultValue', metadataDefaultValue(types(i)));
+end
+end
+
+function runs = normalizeRunsMetadata(runs, metadata, runTemplate)
+if isempty(runs)
+    runs = runTemplate;
+    return
+end
+
+if ~ismember("metadata", runs.Properties.VariableNames)
+    return
+end
+
+metadataFields = fields(metadata);
+if isempty(metadataFields)
+    return
+end
+
+defaultValues = cell(size(metadataFields));
+for i = 1 : numel(metadataFields)
+    defaultValues{i} = metadata.(metadataFields{i}).DefaultValue;
+end
+template = cell2struct(defaultValues, metadataFields, 1);
+
+normalized(height(runs),1) = template;
+for i = 1 : height(runs)
+    current = getRunMetadataStruct(runs.metadata(i));
+    normalized(i) = template;
+
+    for name = string(fields(current))'
+        fieldName = resolveMetadataFieldName(metadata, name);
+        normalized(i).(fieldName) = current.(name);
+    end
+end
+
+runs.metadata = normalized;
+end
+
+function metadata = getRunMetadataStruct(value)
+if iscell(value)
+    value = value{1};
+end
+
+if isempty(value) || ~isstruct(value)
+    metadata = struct();
+else
+    metadata = value(1);
+end
+end
+
+function fieldName = resolveMetadataFieldName(metadata, inputName)
+fieldNames = string(fields(metadata));
+if isempty(fieldNames)
+    error('IIASAEnvironment:resolveMetadataFieldName:UnknownMetadataField', ...
+        "Metadata field '" + string(inputName) + "' is not available.")
+end
+
+matchesField = matches(fieldNames, string(inputName), 'IgnoreCase', true);
+matchesOriginal = false(size(fieldNames));
+for i = 1 : numel(fieldNames)
+    matchesOriginal(i) = isfield(metadata.(fieldNames(i)), 'OriginalName') && ...
+        matches(string(metadata.(fieldNames(i)).OriginalName), string(inputName), 'IgnoreCase', true);
+end
+
+idx = matchesField | matchesOriginal;
+if ~any(idx)
+    error('IIASAEnvironment:resolveMetadataFieldName:UnknownMetadataField', ...
+        "Metadata field '" + string(inputName) + "' is not available.")
+end
+
+fieldName = fieldNames(find(idx, 1));
+end
+
+function values = metadataValuesAsString(metadataValues, fieldName)
+values = strings(numel(metadataValues), 1);
+for i = 1 : numel(metadataValues)
+    current = getRunMetadataStruct(metadataValues(i));
+    if isfield(current, fieldName)
+        values(i) = scalarToString(current.(fieldName));
+    else
+        values(i) = "";
+    end
+end
+end
+
+function idx = matchStringValues(values, patterns, strict)
+values = string(values);
+values(ismissing(values)) = "";
+
+patterns = string(patterns);
+patterns = patterns(strlength(patterns) > 0);
+if isempty(patterns)
+    idx = true(size(values));
+    return
+end
+
+idx = false(size(values));
+for i = 1 : numel(patterns)
+    idx = idx | matchSinglePattern(values, patterns(i), strict);
+end
+end
+
+function idx = matchSinglePattern(values, pattern, strict)
+if contains(pattern, "*") || contains(pattern, "?")
+    expr = "^" + string(regexptranslate('wildcard', char(pattern))) + "$";
+    idx = ~cellfun('isempty', regexpi(cellstr(values), char(expr), 'once'));
+elseif strict
+    idx = matches(values, pattern, 'IgnoreCase', true);
+else
+    idx = contains(values, pattern, 'IgnoreCase', true);
+end
+end
+
+function value = scalarToString(inputValue)
+if isstring(inputValue)
+    value = inputValue;
+elseif ischar(inputValue)
+    value = string(inputValue);
+elseif islogical(inputValue) || isnumeric(inputValue)
+    if isempty(inputValue)
+        value = "";
+    else
+        value = string(inputValue);
+    end
+elseif isempty(inputValue)
+    value = "";
+else
+    value = string(inputValue);
+end
+
+if numel(value) > 1
+    value = strjoin(value, ", ");
+end
+end
+
+function value = metadataDefaultValue(type)
+type = lower(string(type));
+switch type
+    case "numeric value"
+        value = NaN;
+    case "boolean value"
+        value = false;
+    otherwise
+        value = "";
+end
+end
+
+function type = extractMetadataType(details)
+type = "";
+if isstruct(details) && isfield(details, 'type')
+    type = string(details.type);
+elseif istable(details) && ismember("type", details.Properties.VariableNames) && ~isempty(details)
+    type = string(details.type(1));
+end
+end
 
 function checkValidMetadata(input, meta)
 
@@ -272,9 +431,21 @@ if ~isstruct(input)
     error('IIASAEnvironment:checkValidMetadata:InvalidMetadataType','Metadata must be a struct')
 end
 
-if ~all(ismember(lower(fields(input)), lower(fields(meta))))
+validNames = lower(getMetadataFieldNames(meta));
+if ~all(ismember(lower(fields(input)), validNames))
     error('IIASAEnvironment:checkValidMetadata:InvalidMetadataFields',...
-        "Metadata fields must be in: " + strjoin(fields(meta),', '));
+        "Metadata fields must be in: " + strjoin(getMetadataFieldNames(meta),', '));
 end
 
+end
+
+function names = getMetadataFieldNames(meta)
+names = string(fields(meta));
+for fieldName = string(fields(meta))'
+    if isfield(meta.(fieldName), 'OriginalName')
+        names(end+1) = string(meta.(fieldName).OriginalName); %#ok<AGROW>
+    end
+end
+
+names = unique(names(strlength(names) > 0));
 end
