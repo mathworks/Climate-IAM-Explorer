@@ -21,6 +21,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
     properties (Dependent, SetAccess = private)
         
         TableData
+        SelectedFrameData
     end
 
     properties (SetAccess = private)
@@ -195,6 +196,10 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         function value = get.TableData(obj)
             value = obj.FrameData.toTimeseries();
         end
+
+        function value = get.SelectedFrameData(obj)
+            value = obj.getSelectedFrame(true);
+        end
         
         function value = get.SelectedTableData(obj)
             if isempty(obj.TableIdx)
@@ -277,24 +282,45 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             
             indices = event.Indices;
             obj.TableIdx = indices;
-            if isempty(indices) || isempty(obj.TableSummary)
+            selectedFrame = obj.getSelectedFrame(false);
+            if isempty(selectedFrame.toTable())
                 obj.SearchAxes.changeData(iam.IAMTimeseries.empty());
                 return
             end
+            obj.SearchAxes.changeData(selectedFrame.toTimeseries());
+            
+        end
 
-            rows = unique(indices(:,1), 'stable');
-            selectedRows = obj.TableSummary(rows, :);
-            mask = false(height(obj.FrameData.toTable()), 1);
+        function frame = getSelectedFrame(obj, returnAllWhenEmpty)
+            if nargin < 2
+                returnAllWhenEmpty = false;
+            end
+
             data = obj.FrameData.toTable();
+            if isempty(data) || isempty(obj.TableSummary)
+                frame = iam.IAMFrame();
+                return
+            end
+
+            rows = unique(obj.TableIdx(:,1), 'stable');
+            if isempty(rows)
+                if returnAllWhenEmpty
+                    frame = obj.FrameData;
+                else
+                    frame = iam.IAMFrame();
+                end
+                return
+            end
+
+            selectedRows = obj.TableSummary(rows, :);
+            mask = false(height(data), 1);
 
             for i = 1 : height(selectedRows)
                 mask = mask | matchesFrameRow(data, selectedRows(i,:));
             end
 
-            selectedFrame = iam.IAMFrame(data(mask,:), ...
+            frame = iam.IAMFrame(data(mask,:), ...
                 'RunInfo', subsetRunInfoForFrame(obj.FrameData.RunInfo, data.RunId(mask)));
-            obj.SearchAxes.changeData(selectedFrame.toTimeseries());
-            
         end
         
     end

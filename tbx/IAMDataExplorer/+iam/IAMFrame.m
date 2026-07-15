@@ -24,8 +24,8 @@ classdef IAMFrame
             arguments
                 data = defaultDataTable()
                 nvp.RunInfo table = table.empty()
-            end          
-    
+            end
+
             if isa(data, 'iam.IAMTimeseries')
                 obj.Data = fromTimeseries(data);
             elseif istable(data)
@@ -169,34 +169,48 @@ classdef IAMFrame
                 return
             end
 
-            [~, keys, uniqueKeys] = identityGroups(obj.Data);
+            [~, ~, uniqueKeys, loc] = identityGroups(obj.Data);
+            nGroups = numel(uniqueKeys);
 
-            data(numel(uniqueKeys), 1) = struct( ...
-                'model', "", ...
-                'scenario', "", ...
-                'variable', "", ...
-                'region', "", ...
-                'unit', "", ...
-                'runId', NaN, ...
-                'version', NaN, ...
-                'years', zeros(0,1), ...
-                'values', timetable());
+            % Sort once so each group is a contiguous, year-ordered block.
+            [~, order] = sortrows([loc, obj.Data.Year]);
 
-            for i = 1 : numel(uniqueKeys)
-                rows = obj.Data(keys == uniqueKeys(i), :);
-                rows = sortrows(rows, 'Year');
+            % Pull raw arrays out of the table a single time.
+            model    = obj.Data.Model(order);
+            scenario = obj.Data.Scenario(order);
+            variable = obj.Data.Variable(order);
+            region   = obj.Data.Region(order);
+            unit     = obj.Data.Unit(order);
+            runId    = obj.Data.RunId(order);
+            version  = obj.Data.Version(order);
+            year     = obj.Data.Year(order);
+            value    = obj.Data.Value(order);
+            g        = loc(order);
 
-                data(i).model = rows.Model(1);
-                data(i).scenario = rows.Scenario(1);
-                data(i).variable = rows.Variable(1);
-                data(i).region = rows.Region(1);
-                data(i).unit = rows.Unit(1);
-                data(i).runId = rows.RunId(1);
-                data(i).version = rows.Version(1);
-                data(i).years = rows.Year;
-                data(i).values = timetable( ...
-                    datetime(rows.Year, 1, 1, 'Format', 'yyyy'), ...
-                    rows.Value, ...
+            % Build datetimes once, not per group.
+            dt = datetime(year, 1, 1, 'Format', 'yyyy');
+
+            % Block boundaries from the sorted group index.
+            starts = find([true; diff(g) ~= 0]);
+            stops  = [starts(2:end) - 1; numel(g)];
+
+            data(nGroups, 1) = struct('model', "", 'scenario', "", ...
+                'variable', "", 'region', "", 'unit', "", 'runId', NaN, ...
+                'version', NaN, 'years', zeros(0,1), 'values', timetable());
+
+            for i = 1 : nGroups
+                s = starts(i);
+                rng = s:stops(i);
+
+                data(i).model    = model(s);
+                data(i).scenario = scenario(s);
+                data(i).variable = variable(s);
+                data(i).region   = region(s);
+                data(i).unit     = unit(s);
+                data(i).runId    = runId(s);
+                data(i).version  = version(s);
+                data(i).years    = year(rng);
+                data(i).values   = timetable(dt(rng), value(rng), ...
                     'DimensionNames', {'Year', 'VariableUnits'}, ...
                     'VariableNames', {'Values'});
             end
