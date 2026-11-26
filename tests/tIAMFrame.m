@@ -1,11 +1,14 @@
 classdef tIAMFrame < matlab.unittest.TestCase
 
-    methods (TestClassSetup)
-        function addToolboxToPath(tc)
-            root = fileparts(fileparts(mfilename('fullpath')));
-            tc.applyFixture(matlab.unittest.fixtures.PathFixture( ...
-                fullfile(root, 'tbx', 'IAMDataExplorer')));
-        end
+    properties (TestParameter)
+        InvalidYear = struct( ...
+            'missing', NaN, ...
+            'infinite', Inf, ...
+            'fractional', 2020.5)
+        InvalidYearSelector = struct( ...
+            'malformedText', "not-a-year", ...
+            'infinite', Inf, ...
+            'fractional', 2020.5)
     end
 
     methods (Test, TestTags = {'Unit'})
@@ -79,6 +82,101 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyEqual(merged.RunIds, [101; 202])
         end
 
+        function testLocalLongTableWithoutSourceIdsRoundTrips(tc)
+            data = localLongData();
+            frame = iam.IAMFrame(data);
+
+            normalized = frame.toTable();
+            tc.verifyTrue(all(isnan(normalized.RunId)))
+            tc.verifyTrue(all(isnan(normalized.Version)))
+            tc.verifyEqual(normalized.Unit, strings(2,1))
+            tc.verifyTrue(isnan(normalized.Value(2)))
+
+            roundTrip = iam.IAMFrame(frame.toTimeseries()).toTable();
+            tc.verifyEqual(roundTrip(:, normalized.Properties.VariableNames), normalized)
+        end
+
+        function testPipeCharactersDoNotCollideInIdentity(tc)
+            data = table(["A|B"; "A"], ["C"; "B|C"], ...
+                ["Variable"; "Variable"], ["World"; "World"], ...
+                ["EJ/yr"; "EJ/yr"], [2020; 2020], [1; 2], ...
+                'VariableNames', {'Model', 'Scenario', 'Variable', ...
+                'Region', 'Unit', 'Year', 'Value'});
+
+            frame = iam.IAMFrame(data);
+
+            tc.verifyEqual(height(frame.summary()), 2)
+            tc.verifyEqual(height(frame.toTable()), 2)
+        end
+
+        function testDuplicateObservationIgnoresSourceRunId(tc)
+            data = table(["Model"; "Model"], ["Scenario"; "Scenario"], ...
+                ["Variable"; "Variable"], ["World"; "World"], ...
+                ["EJ/yr"; "EJ/yr"], [1; 2], [1; 1], [2020; 2020], [1; 1], ...
+                'VariableNames', {'Model', 'Scenario', 'Variable', 'Region', ...
+                'Unit', 'RunId', 'Version', 'Year', 'Value'});
+
+            tc.verifyError(@() iam.IAMFrame(data), ...
+                'iam:IAMFrame:DuplicateObservation')
+        end
+
+        function testVersionDistinguishesObservations(tc)
+            data = table(["Model"; "Model"], ["Scenario"; "Scenario"], ...
+                ["Variable"; "Variable"], ["World"; "World"], ...
+                ["EJ/yr"; "EJ/yr"], [1; 1], [2020; 2021], [2020; 2020], [1; 2], ...
+                'VariableNames', {'Model', 'Scenario', 'Variable', 'Region', ...
+                'Unit', 'RunId', 'Version', 'Year', 'Value'});
+
+            frame = iam.IAMFrame(data);
+
+            tc.verifyEqual(height(frame.summary()), 2)
+        end
+
+        function testRejectsInvalidAnnualYear(tc, InvalidYear)
+            data = localLongData();
+            data.Year(1) = InvalidYear;
+
+            tc.verifyError(@() iam.IAMFrame(data), 'iam:IAMFrame:InvalidYear')
+        end
+
+        function testRejectsInvalidAnnualYearFromTimeseries(tc)
+            date = datetime(2020, 1, 1, 'Format', 'yyyy');
+            series = struct( ...
+                'model', "Model", 'scenario', "Scenario", ...
+                'variable', "Variable", 'region', "World", ...
+                'unit', "EJ/yr", 'runId', NaN, 'version', NaN, ...
+                'years', 2020.5, ...
+                'values', timetable(date, 1, ...
+                    'DimensionNames', {'Year', 'VariableUnits'}, ...
+                    'VariableNames', {'Values'}));
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(series)), ...
+                'iam:IAMFrame:InvalidYear')
+        end
+
+        function testRejectsMalformedYearSelector(tc, InvalidYearSelector)
+            frame = iam.IAMFrame(localLongData());
+
+            tc.verifyError(@() frame.filter(years=InvalidYearSelector), ...
+                'iam:IAMFrame:InvalidYears')
+        end
+
+        function testRejectsUnsupportedColumns(tc)
+            data = localLongData();
+            data.Subannual = repmat("Year", height(data), 1);
+
+            tc.verifyError(@() iam.IAMFrame(data), ...
+                'iam:IAMFrame:UnsupportedColumns')
+        end
+
+        function testTextYearSelectorMatchesAnnualYears(tc)
+            frame = iam.IAMFrame(localLongData());
+
+            filtered = frame.filter(years="2030");
+
+            tc.verifyEqual(filtered.Years, 2030)
+        end
+
         function testHeadAndTail(tc)
             frame = iam.IAMFrame(buildSampleTimeseries());
 
@@ -118,4 +216,12 @@ data(2).values = timetable(dates, [10; 20; 30], ...
     'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', {'Values'});
 
 ts = iam.IAMTimeseries(data(selection));
+end
+
+function data = localLongData()
+data = table(["Local model"; "Local model"], ...
+    ["Baseline"; "Baseline"], ["Energy"; "Energy"], ...
+    ["World"; "World"], strings(2,1), [2020; 2030], [1; NaN], ...
+    'VariableNames', {'Model', 'Scenario', 'Variable', 'Region', ...
+    'Unit', 'Year', 'Value'});
 end

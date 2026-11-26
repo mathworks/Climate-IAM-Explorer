@@ -1,3 +1,13 @@
+%IAMFrame Store annual IAM observations in a MATLAB table.
+%   FRAME = iam.IAMFrame(DATA) constructs a frame from IAMTimeseries objects
+%   or a long table with Model, Scenario, Variable, Region, Unit, Year, and
+%   Value columns. RunId and Version are optional. Use 'RunInfo' to attach
+%   source metadata.
+%
+%   Annual years must be finite integers. Missing observations are represented
+%   by NaN and are not replaced with zero. An empty Unit string means unknown.
+%   Additional columns are rejected so data cannot be silently discarded.
+
 classdef IAMFrame
 
     properties (Access = private)
@@ -5,17 +15,17 @@ classdef IAMFrame
     end
 
     properties (SetAccess = private)
-        RunInfo table = table()
+        RunInfo table = table() % Source metadata associated with RunId values.
     end
 
     properties (Dependent, SetAccess = private)
-        Models (:,1) string
-        Scenarios (:,1) string
-        Variables (:,1) string
-        Regions (:,1) string
-        Units (:,1) string
-        RunIds (:,1) double
-        Years (:,1) double
+        Models (:,1) string % Model names in the frame.
+        Scenarios (:,1) string % Scenario names in the frame.
+        Variables (:,1) string % Variable names in the frame.
+        Regions (:,1) string % Region names in the frame.
+        Units (:,1) string % Units; empty denotes unknown.
+        RunIds (:,1) double % Source run IDs; NaN denotes no source run.
+        Years (:,1) double % Annual years in the frame.
     end
 
     methods
@@ -80,7 +90,7 @@ classdef IAMFrame
             end
 
             [tb, ~, uniqueKeys, loc] = identityGroups(obj.Data);
-            tb.NumYears = accumarray(loc, 1, [numel(uniqueKeys), 1]);
+            tb.NumYears = accumarray(loc, 1, [height(uniqueKeys), 1]);
 
         end
 
@@ -149,16 +159,15 @@ classdef IAMFrame
                 return
             end
 
-            [tb, keys, uniqueKeys] = identityGroups(obj.Data);
+            [tb, ~, uniqueKeys, loc] = identityGroups(obj.Data);
             years = sort(unique(obj.Data.Year));
 
             for i = 1 : numel(years)
                 y = years(i);
                 colName = "Y" + string(y);
-                col = NaN(numel(uniqueKeys), 1);
+                col = NaN(height(uniqueKeys), 1);
                 idx = obj.Data.Year == y;
-                [~, loc] = ismember(keys(idx), uniqueKeys);
-                col(loc) = obj.Data.Value(idx);
+                col(loc(idx)) = obj.Data.Value(idx);
                 tb.(colName) = col;
             end
         end
@@ -170,7 +179,7 @@ classdef IAMFrame
             end
 
             [~, ~, uniqueKeys, loc] = identityGroups(obj.Data);
-            nGroups = numel(uniqueKeys);
+            nGroups = height(uniqueKeys);
 
             % Sort once so each group is a contiguous, year-ordered block.
             [~, order] = sortrows([loc, obj.Data.Year]);
@@ -222,8 +231,8 @@ end
 
 function [ids, keys, uniqueKeys, loc] = identityGroups(data)
 vars = identityVariables();
-keys = buildRowKey(data, vars);
-[uniqueKeys, ia, loc] = unique(keys, 'stable');
+keys = identityComparisonTable(data(:, vars));
+[uniqueKeys, ia, loc] = unique(keys, 'rows', 'stable');
 ids = data(ia, vars);
 end
 
@@ -235,6 +244,10 @@ end
 
 function vars = identityVariables()
 vars = {'Model', 'Scenario', 'Variable', 'Region', 'Unit', 'RunId', 'Version'};
+end
+
+function vars = observationIdentityVariables()
+vars = {'Model', 'Scenario', 'Variable', 'Region', 'Unit', 'Version', 'Year'};
 end
 
 function value = uniqueOrEmpty(data, fieldName, emptyValue)
@@ -264,7 +277,7 @@ value = NaN(numRows, 1);
 
 current = 1;
 for i = 1 : numel(ts)
-    years = ts(i).Years(:);
+    years = normalizeAnnualYears(ts(i).Years(:));
     values = ts(i).Values{:,1};
     count = numel(years);
     idx = current:(current + count - 1);
@@ -287,24 +300,85 @@ data = table(model, scenario, variable, region, unit, runId, version, yearValue,
 end
 
 function data = normalizeDataTable(data)
-required = string(defaultDataTable().Properties.VariableNames);
+required = ["Model", "Scenario", "Variable", "Region", "Unit", "Year", "Value"];
+optional = ["RunId", "Version"];
 present = string(data.Properties.VariableNames);
 if ~all(ismember(required, present))
     error('iam:IAMFrame:InvalidTable', ...
-        "IAMFrame table input must contain: " + strjoin(required, ', '))
+        "IAMFrame table input must contain: " + strjoin(required, ", "))
 end
 
-data = data(:, cellstr(required));
-data.Model = string(data.Model);
-data.Scenario = string(data.Scenario);
-data.Variable = string(data.Variable);
-data.Region = string(data.Region);
-data.Unit = string(data.Unit);
-data.RunId = double(data.RunId);
-data.Version = double(data.Version);
-data.Year = double(data.Year);
-data.Value = double(data.Value);
+unsupported = setdiff(present, [required, optional], 'stable');
+if ~isempty(unsupported)
+    error('iam:IAMFrame:UnsupportedColumns', ...
+        "Unsupported IAMFrame table columns: " + strjoin(unsupported, ", "))
+end
+
+data.Model = normalizeTextColumn(data.Model, "Model");
+data.Scenario = normalizeTextColumn(data.Scenario, "Scenario");
+data.Variable = normalizeTextColumn(data.Variable, "Variable");
+data.Region = normalizeTextColumn(data.Region, "Region");
+data.Unit = normalizeTextColumn(data.Unit, "Unit");
+data.Unit(ismissing(data.Unit)) = "";
+missingIdentity = ismissing(data.Model) | strlength(data.Model) == 0 | ...
+    ismissing(data.Scenario) | strlength(data.Scenario) == 0 | ...
+    ismissing(data.Variable) | strlength(data.Variable) == 0 | ...
+    ismissing(data.Region) | strlength(data.Region) == 0;
+if any(missingIdentity)
+    error('iam:IAMFrame:MissingIdentity', ...
+        'Model, Scenario, Variable, and Region must be nonempty text.')
+end
+
+if ~ismember("RunId", present)
+    data.RunId = NaN(height(data), 1);
+end
+if ~ismember("Version", present)
+    data.Version = NaN(height(data), 1);
+end
+data.RunId = normalizeNumericColumn(data.RunId, "RunId", true);
+data.Version = normalizeNumericColumn(data.Version, "Version", true);
+data.Year = normalizeAnnualYears(data.Year);
+data.Value = normalizeNumericColumn(data.Value, "Value", true);
+if any(isinf(data.Value))
+    error('iam:IAMFrame:InvalidValue', ...
+        'Value entries may be finite or NaN, but not infinite.')
+end
+
+data = data(:, cellstr([required, optional]));
 data = sortrows(data, {'Model', 'Scenario', 'Variable', 'Region', 'Unit', 'RunId', 'Version', 'Year'});
+end
+
+function values = normalizeTextColumn(values, name)
+validType = isstring(values) || ischar(values) || iscellstr(values) || iscategorical(values);
+if ~validType || (~ischar(values) && size(values, 2) ~= 1)
+    error('iam:IAMFrame:InvalidTextColumn', ...
+        name + " must contain text values.")
+end
+values = string(values);
+end
+
+function values = normalizeNumericColumn(values, name, allowMissing)
+if ~isnumeric(values) || ~isreal(values) || size(values, 2) ~= 1
+    error('iam:IAMFrame:InvalidNumericColumn', ...
+        name + " must contain a real numeric column.")
+end
+values = double(values);
+if any(isinf(values)) || (~allowMissing && any(isnan(values)))
+    error('iam:IAMFrame:InvalidNumericColumn', ...
+        name + " contains invalid or nonfinite values.")
+end
+end
+
+function years = normalizeAnnualYears(years)
+if ~isnumeric(years) || ~isreal(years) || size(years, 2) ~= 1
+    error('iam:IAMFrame:InvalidYear', ...
+        'Year values must be finite integer annual years.')
+end
+years = double(years);
+if any(~isfinite(years)) || any(years ~= fix(years))
+    error('iam:IAMFrame:InvalidYear', ...
+        'Year values must be finite integer annual years.')
+end
 end
 
 function idx = matchStringValues(values, patterns, strict)
@@ -337,27 +411,40 @@ end
 
 function years = normalizeYears(inputYears)
 if isempty(inputYears)
-    years = [];
+    years = zeros(0,1);
     return
 end
 
 if isnumeric(inputYears)
+    if ~isreal(inputYears)
+        invalidYearSelector()
+    end
     years = double(inputYears);
-else
+elseif isstring(inputYears) || ischar(inputYears) || iscellstr(inputYears)
     years = str2double(string(inputYears));
-    years = years(~isnan(years));
+else
+    invalidYearSelector()
+end
+
+if any(~isfinite(years), 'all') || any(years ~= fix(years), 'all')
+    invalidYearSelector()
 end
 end
 
-function keys = buildRowKey(data, vars)
-keys = strings(height(data), 1);
-for i = 1 : numel(vars)
-    values = string(data.(vars{i}));
-    values(ismissing(values)) = "";
-    if i == 1
-        keys = values;
-    else
-        keys = keys + "|" + values;
+function invalidYearSelector()
+error('iam:IAMFrame:InvalidYears', ...
+    'Years must be finite integer annual years or empty.')
+end
+
+function rows = identityComparisonTable(rows)
+% UNIQUE treats NaNs as distinct rows; negative infinity is reserved for
+% missing optional numeric identity fields by the input contract.
+names = rows.Properties.VariableNames;
+for i = 1 : numel(names)
+    if isnumeric(rows.(names{i}))
+        values = rows.(names{i});
+        values(isnan(values)) = -Inf;
+        rows.(names{i}) = values;
     end
 end
 end
@@ -391,8 +478,7 @@ if ismember('run_id', runInfo.Properties.VariableNames)
     [~, ia] = unique(runInfo.run_id, 'stable');
     runInfo = runInfo(ia, :);
 else
-    keys = buildRowKey(runInfo, runInfo.Properties.VariableNames);
-    [~, ia] = unique(keys, 'stable');
+    [~, ia] = unique(runInfo, 'rows', 'stable');
     runInfo = runInfo(ia, :);
 end
 end
@@ -401,9 +487,11 @@ function validateUniqueObservations(data)
 if isempty(data)
     return
 end
-keys = buildRowKey(data, [identityVariables(), {'Year'}]);
-if numel(unique(keys)) ~= numel(keys)
+keys = identityComparisonTable(data(:, observationIdentityVariables()));
+uniqueKeys = unique(keys, 'rows', 'stable');
+if height(uniqueKeys) ~= height(data)
     error('iam:IAMFrame:DuplicateObservation', ...
-        'IAMFrame data contains duplicate observations.')
+        ['IAMFrame data contains duplicate observations for the same ' ...
+         'model, scenario, version, variable, region, unit, and year.'])
 end
 end

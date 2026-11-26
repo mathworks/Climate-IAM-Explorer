@@ -1,13 +1,5 @@
 classdef tIAMTimeseries < matlab.unittest.TestCase
 
-    methods (TestClassSetup)
-        function addToolboxToPath(tc)
-            root = fileparts(fileparts(mfilename('fullpath')));
-            tc.applyFixture(matlab.unittest.fixtures.PathFixture( ...
-                fullfile(root, 'tbx', 'IAMDataExplorer')));
-        end
-    end
-
     methods (Test, TestTags = {'Unit'})
         function testNoArgConstructorReturnsScalarDefault(tc)
             tc.verifyError(@() iam.IAMTimeseries(), 'MATLAB:minrhs')
