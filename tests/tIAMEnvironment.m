@@ -40,6 +40,29 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyTrue(isnan(env.RunList.metadata(2).(normalizedName)))
         end
 
+        function testEmptyDiscoverySkipsDefaultTimeseriesRequest(tc)
+            conn = MockIAMConnection('BulkDataResponse', buildMockTimeseries());
+            env = iam.IAMEnvironment(conn);
+
+            ts = env.getTimeSeries();
+
+            tc.verifyClass(ts, "iam.IAMTimeseries")
+            tc.verifyEmpty(ts)
+            tc.verifyEmpty(fieldnames(conn.BulkDataRequest))
+        end
+
+        function testEmptyDiscoverySkipsDefaultFrameRequest(tc)
+            conn = MockIAMConnection('BulkDataResponse', buildMockTimeseries());
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame();
+
+            tc.verifyClass(frame, "iam.IAMFrame")
+            tc.verifyEmpty(frame.toTable())
+            tc.verifyEmpty(frame.RunInfo)
+            tc.verifyEmpty(fieldnames(conn.BulkDataRequest))
+        end
+
         function testGetTimeSeriesForwardsAdditionalFilters(tc)
             conn = buildMockConnection();
             env = iam.IAMEnvironment(conn);

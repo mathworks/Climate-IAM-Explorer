@@ -30,6 +30,14 @@ The frame sorts rows by model, scenario, variable, region, unit, run ID,
 version, and year. Series conversions retain all supported observations,
 including rows whose value is missing.
 
+Table and timeseries inputs use the same validation, unit normalization, and
+row ordering. Each timeseries must contain exactly one real numeric value
+column with one value per annual year, and a scalar `Version` (which may be
+`NaN`). Multiple timetable variables, matrix-valued columns, and mismatched
+year/value lengths are rejected. Timetable row times must be January 1 at
+midnight and agree with `Years`; duration coordinates, missing dates, and
+subannual timestamps are rejected rather than silently relabeled.
+
 ## Values and annual years
 
 Years must be real, finite integer numbers. Year selectors passed to `filter`

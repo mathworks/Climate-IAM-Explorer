@@ -36,6 +36,10 @@ The `Environment` dependent property reports the current connection target.
 
 Use `getTimeSeries()` to retrieve data as `iam.IAMTimeseries`.
 
+If discovery contains no runs, or an explicit model/scenario/run/variable/region
+selection matches nothing, the method returns an empty `iam.IAMTimeseries`
+without a bulk request. `getFrame()` returns an empty frame for the same query.
+
 ```matlab
 ts = env.getTimeSeries( ...
     'models', "GCAM5.3_NGFS", ...

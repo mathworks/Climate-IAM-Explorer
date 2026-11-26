@@ -37,14 +37,13 @@ classdef IAMFrame
             end
 
             if isa(data, 'iam.IAMTimeseries')
-                obj.Data = fromTimeseries(data);
-            elseif istable(data)
-                obj.Data = normalizeDataTable(data);
-            else
+                data = fromTimeseries(data);
+            elseif ~istable(data)
                 error('iam:IAMFrame:InvalidInput', ...
                     'IAMFrame input must be a IAMTimeseries array or a table.')
             end
 
+            obj.Data = normalizeDataTable(data);
             validateUniqueObservations(obj.Data);
 
             obj.RunInfo = nvp.RunInfo;
@@ -278,8 +277,28 @@ value = NaN(numRows, 1);
 current = 1;
 for i = 1 : numel(ts)
     years = normalizeAnnualYears(ts(i).Years(:));
-    values = ts(i).Values{:,1};
+    tt = ts(i).Values;
     count = numel(years);
+    if width(tt) ~= 1
+        error("iam:IAMFrame:InvalidTimeseriesValues", ...
+            "Each timeseries must contain exactly one numeric value column.")
+    end
+    if height(tt) ~= count
+        error("iam:IAMFrame:InvalidTimeseriesLength", ...
+            "Timeseries %d has %d years and %d value rows; their lengths must match.", ...
+            i, count, height(tt))
+    end
+    values = normalizeNumericColumn(tt{:,1}, "Value", true);
+    if ~isscalar(ts(i).Version)
+        error("iam:IAMFrame:InvalidNumericColumn", ...
+            "Version must contain one numeric value per timeseries.")
+    end
+    dates = tt.Properties.RowTimes;
+    if ~isdatetime(dates) || any(isnat(dates)) || ...
+            ~isequal(year(dates), years) || any(dates ~= dateshift(dates, "start", "year"))
+        error("iam:IAMFrame:InvalidTimeseriesTime", ...
+            "Timeseries row times must match Years and be January 1 at midnight.")
+    end
     idx = current:(current + count - 1);
 
     model(idx) = ts(i).Model;
@@ -288,7 +307,7 @@ for i = 1 : numel(ts)
     region(idx) = ts(i).Region;
     unit(idx) = ts(i).Unit;
     runId(idx) = ts(i).RunId;
-    version(idx) = double(ts(i).Version(1));
+    version(idx) = ts(i).Version;
     yearValue(idx) = years;
     value(idx) = values;
 

@@ -9,6 +9,28 @@ classdef tIAMFrame < matlab.unittest.TestCase
             'malformedText', "not-a-year", ...
             'infinite', Inf, ...
             'fractional', 2020.5)
+        InvalidTimeseriesIdentity = struct( ...
+            'emptyModel', struct('Field', "model", 'Value', ""), ...
+            'missingModel', struct('Field', "model", 'Value', string(missing)), ...
+            'emptyScenario', struct('Field', "scenario", 'Value', ""), ...
+            'missingScenario', struct('Field', "scenario", 'Value', string(missing)), ...
+            'emptyVariable', struct('Field', "variable", 'Value', ""), ...
+            'missingVariable', struct('Field', "variable", 'Value', string(missing)), ...
+            'emptyRegion', struct('Field', "region", 'Value', ""), ...
+            'missingRegion', struct('Field', "region", 'Value', string(missing)))
+        InvalidTimeseriesValue = struct( ...
+            'infinite', Inf, 'complex', 1 + 1i, 'text', "invalid")
+        InvalidTimeseriesProvenance = struct( ...
+            'infiniteRunId', struct('Field', "runId", 'Value', Inf), ...
+            'infiniteVersion', struct('Field', "version", 'Value', Inf), ...
+            'multipleVersions', struct('Field', "version", 'Value', [1; 2]), ...
+            'emptyVersion', struct('Field', "version", 'Value', zeros(0,1)))
+        InvalidTimeseriesLayout = struct( ...
+            'scalarValues', "scalarValues", ...
+            'emptyYears', "emptyYears", ...
+            'emptyValues', "emptyValues", ...
+            'multipleColumns', "multipleColumns", ...
+            'matrixColumn', "matrixColumn")
     end
 
     methods (Test, TestTags = {'Unit'})
@@ -139,19 +161,108 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyError(@() iam.IAMFrame(data), 'iam:IAMFrame:InvalidYear')
         end
 
-        function testRejectsInvalidAnnualYearFromTimeseries(tc)
+        function testRejectsInvalidAnnualYearFromTimeseries(tc, InvalidYear)
             date = datetime(2020, 1, 1, 'Format', 'yyyy');
             series = struct( ...
                 'model', "Model", 'scenario', "Scenario", ...
                 'variable', "Variable", 'region', "World", ...
                 'unit', "EJ/yr", 'runId', NaN, 'version', NaN, ...
-                'years', 2020.5, ...
+                'years', InvalidYear, ...
                 'values', timetable(date, 1, ...
                     'DimensionNames', {'Year', 'VariableUnits'}, ...
                     'VariableNames', {'Values'}));
 
             tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(series)), ...
                 'iam:IAMFrame:InvalidYear')
+        end
+
+        function testRejectsInvalidTimeseriesIdentity(tc, InvalidTimeseriesIdentity)
+            [~, input] = buildSampleTimeseries(1);
+            input.(InvalidTimeseriesIdentity.Field) = InvalidTimeseriesIdentity.Value;
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:MissingIdentity")
+        end
+
+        function testRejectsInvalidTimeseriesValues(tc, InvalidTimeseriesValue)
+            [~, input] = buildSampleTimeseries(1);
+            input.values = timetable(input.values.Year, ...
+                repmat(InvalidTimeseriesValue, 3, 1), ...
+                VariableNames="Values", DimensionNames=["Year", "VariableUnits"]);
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:InvalidNumericColumn")
+        end
+
+        function testRejectsInvalidTimeseriesProvenance(tc, InvalidTimeseriesProvenance)
+            [~, input] = buildSampleTimeseries(1);
+            input.(InvalidTimeseriesProvenance.Field) = InvalidTimeseriesProvenance.Value;
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:InvalidNumericColumn")
+        end
+
+        function testRejectsInconsistentTimeseriesLayout(tc, InvalidTimeseriesLayout)
+            [~, input] = buildSampleTimeseries(1);
+            expectedError = "iam:IAMFrame:InvalidTimeseriesLength";
+            switch InvalidTimeseriesLayout
+                case "scalarValues"
+                    input.values = input.values(1,:);
+                case "emptyYears"
+                    input.years = zeros(0,1);
+                case "emptyValues"
+                    input.values = input.values([],:);
+                case "multipleColumns"
+                    input.values.Extra = [10; 20; 30];
+                    expectedError = "iam:IAMFrame:InvalidTimeseriesValues";
+                case "matrixColumn"
+                    input.values.Values = [1 10; 2 20; 3 30];
+                    expectedError = "iam:IAMFrame:InvalidNumericColumn";
+            end
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), expectedError)
+        end
+
+        function testRejectsInconsistentTimeseriesDates(tc)
+            [~, input] = buildSampleTimeseries(1);
+            input.values.Year = input.values.Year + calyears(1);
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:InvalidTimeseriesTime")
+        end
+
+        function testRejectsSubannualTimeseriesDates(tc)
+            [~, input] = buildSampleTimeseries(1);
+            input.values.Year(1) = input.values.Year(1) + calmonths(1);
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:InvalidTimeseriesTime")
+        end
+
+        function testRejectsDurationTimeseriesDates(tc)
+            [~, input] = buildSampleTimeseries(1);
+            input.values = timetable(days([0; 10; 20]), [1; 2; 3], ...
+                VariableNames="Values", DimensionNames=["Year", "VariableUnits"]);
+
+            tc.verifyError(@() iam.IAMFrame(iam.IAMTimeseries(input)), ...
+                "iam:IAMFrame:InvalidTimeseriesTime")
+        end
+
+        function testTimeseriesInputUsesTheTableNormalization(tc)
+            [~, input] = buildSampleTimeseries(1);
+            input.unit = string(missing);
+            input.years = [2040; 2020; 2030];
+            input.values = timetable(datetime(input.years, 1, 1), [NaN; 1; 2], ...
+                VariableNames="Values", DimensionNames=["Year", "VariableUnits"]);
+            frame = iam.IAMFrame(iam.IAMTimeseries(input));
+            expected = table(repmat("Model A",3,1), repmat("Scenario A",3,1), ...
+                repmat("Primary Energy",3,1), repmat("World",3,1), strings(3,1), ...
+                [2020; 2030; 2040], [1; 2; NaN], repmat(101,3,1), ones(3,1), ...
+                VariableNames=["Model","Scenario","Variable","Region","Unit", ...
+                "Year","Value","RunId","Version"]);
+
+            tc.verifyEqual(frame.toTable(), expected)
+            tc.verifyEqual(iam.IAMFrame(frame.toTimeseries()).toTable(), expected)
         end
 
         function testRejectsMalformedYearSelector(tc, InvalidYearSelector)
@@ -186,7 +297,7 @@ classdef tIAMFrame < matlab.unittest.TestCase
     end
 end
 
-function ts = buildSampleTimeseries(selection)
+function [ts, data] = buildSampleTimeseries(selection)
 if nargin < 1
     selection = [1 2];
 end
@@ -215,7 +326,8 @@ data(2).years = year(dates);
 data(2).values = timetable(dates, [10; 20; 30], ...
     'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', {'Values'});
 
-ts = iam.IAMTimeseries(data(selection));
+data = data(selection);
+ts = iam.IAMTimeseries(data);
 end
 
 function data = localLongData()

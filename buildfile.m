@@ -40,7 +40,7 @@ mdfiles = dir( fullfile('tbx', 'doc', '*.md') );
 [~,idx] = ismember( fullfile( {mdfiles.folder}, {mdfiles.name}), opts.ToolboxFiles);
 opts.ToolboxFiles(idx) = [];
 
-opts.ToolboxMatlabPath = [fullfile("tbx", "IAMDataExplorer"), fullfile("tbx", "IAMDataExplorer", "app"), fullfile("tbx", "tbx", "ISMIPExplorer")];
+opts.ToolboxMatlabPath = [fullfile("tbx", "IAMDataExplorer"), fullfile("tbx", "IAMDataExplorer", "app"), fullfile("tbx", "ISMIPExplorer")];
 
 opts.AuthorName = "Eduard Benet";
 opts.AuthorCompany = "MathWorks";
