@@ -11,6 +11,8 @@ classdef MockIAMConnection < iam.data.Connection
         MetadataCategories table = table()
         BulkDataRequest struct = struct()
         BulkDataResponse = []
+        ReturnConfiguredBulkDataResponse (1,1) logical = false
+        EnforceBulkDataContract (1,1) logical = true
     end
 
     properties (SetAccess = private)
@@ -34,19 +36,21 @@ classdef MockIAMConnection < iam.data.Connection
 
         function ts = getBulkData(obj, varargin)
             p = inputParser();
-            addParameter(p, 'runs', [])
-            addParameter(p, 'variables', [])
-            addParameter(p, 'regions', [])
-            addParameter(p, 'years', [])
-            addParameter(p, 'units', [])
-            addParameter(p, 'timeslices', [])
+            p.CaseSensitive = false;
+            textFilter = @(x) isstring(x) || ischar(x);
+            addParameter(p, 'runs', [], @(x) ~obj.EnforceBulkDataContract || isnumeric(x))
+            addParameter(p, 'variables', '', @(x) ~obj.EnforceBulkDataContract || textFilter(x))
+            addParameter(p, 'regions', '', @(x) ~obj.EnforceBulkDataContract || textFilter(x))
+            addParameter(p, 'years', [], @(x) ~obj.EnforceBulkDataContract || isnumeric(x) || textFilter(x))
+            addParameter(p, 'units', '', @(x) ~obj.EnforceBulkDataContract || textFilter(x))
+            addParameter(p, 'timeslices', '', @(x) ~obj.EnforceBulkDataContract || textFilter(x))
             parse(p, varargin{:});
 
             obj.BulkDataRequest = p.Results;
-            if isempty(obj.BulkDataResponse)
-                ts = obj.BulkDataRequest;
-            else
+            if obj.ReturnConfiguredBulkDataResponse || ~isempty(obj.BulkDataResponse)
                 ts = obj.BulkDataResponse;
+            else
+                ts = obj.BulkDataRequest;
             end
         end
 

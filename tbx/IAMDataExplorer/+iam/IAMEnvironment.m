@@ -62,10 +62,17 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             variables = obj.filterVariables(opts.variables, opts.strict);
             regions = obj.filterRegions(opts.regions, opts.strict);
 
-            runIds = obj.filterRuns(opts.strict, ...
+            runIds = obj.filterRuns('strict', opts.strict, ...
                 'models', opts.models, ...
                 'scenarios', opts.scenarios, ...
                 'runs', opts.runs);
+
+            if ((~isempty(opts.models) || ~isempty(opts.scenarios) || ~isempty(opts.runs)) && isempty(runIds)) || ...
+                    (~isempty(opts.variables) && isempty(variables)) || ...
+                    (~isempty(opts.regions) && isempty(regions))
+                ts = iam.IAMTimeseries(struct.empty());
+                return
+            end
 
             ts = obj.Connection.getBulkData( ...
                 'runs', runIds, ...
@@ -106,10 +113,10 @@ classdef IAMEnvironment < matlab.mixin.SetGet
                     'getFrame requires the connection to return IAMTimeseries data.')
             end
 
-            runInfo = obj.RunList(ismember(obj.RunList.run_id, ts.RunId), :);
+            frame = ts.toFrame();
+            runInfo = obj.RunList(ismember(obj.RunList.run_id, frame.RunIds), :);
             runInfo = projectRunMetadata(runInfo, obj.Metadata, opts.meta);
 
-            frame = ts.toFrame();
             frame = iam.IAMFrame(frame.toTable(), ...
                 'RunInfo', runInfo);
         end
@@ -154,36 +161,36 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             vars = filterVar(obj, 'Regions', data, strict);
         end
         
-        function runIDs = filterRuns(obj, strict, nvp)
+        function runIDs = filterRuns(obj, opts)
             % FILTERRUNS get Run IDs for runs based on model, scenario, or
-            % metadata.
+            % metadata. Use name-value arguments for every filter.
             arguments
                 obj
-                strict (1,1) logical = false
-                nvp.models (1,:) string = strings(0,1)
-                nvp.scenarios (1,:) string = strings(0,1)
-                nvp.runs      (1,:) double = []
-                nvp.metadata  struct = struct.empty()
-            end     
+                opts.strict (1,1) logical = false
+                opts.models (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs (1,:) double = []
+                opts.metadata struct = struct.empty()
+            end
             
-            checkValidMetadata(nvp.metadata, obj.Metadata)
+            checkValidMetadata(opts.metadata, obj.Metadata)
 
             idx = true(height(obj.RunList),1);
-            if ~isempty(nvp.models)
-                idx = idx & matchStringValues(obj.RunList.model, nvp.models, strict);
+            if ~isempty(opts.models)
+                idx = idx & matchStringValues(obj.RunList.model, opts.models, opts.strict);
             end
-            if ~isempty(nvp.scenarios)
-                idx = idx & matchStringValues(obj.RunList.scenario, nvp.scenarios, strict);
+            if ~isempty(opts.scenarios)
+                idx = idx & matchStringValues(obj.RunList.scenario, opts.scenarios, opts.strict);
             end
-            if ~isempty(nvp.runs)
-                idx = idx & ismember(obj.RunList.run_id, nvp.runs);
+            if ~isempty(opts.runs)
+                idx = idx & ismember(obj.RunList.run_id, opts.runs);
             end
             
-            if ~isempty(nvp.metadata)
-                for f = fields(nvp.metadata)
+            if ~isempty(opts.metadata)
+                for f = fields(opts.metadata)
                     fieldName = resolveMetadataFieldName(obj.Metadata, f{1});
                     values = metadataValuesAsString(obj.RunList.metadata, fieldName);
-                    idx = idx & matchStringValues(values, nvp.metadata.(f{1}), strict);
+                    idx = idx & matchStringValues(values, string(opts.metadata.(f{1})), opts.strict);
                 end
             end
             
@@ -538,7 +545,7 @@ names = unique(names(strlength(names) > 0));
 end
 
 function runs = selectRunsTable(obj, strict, models, scenarios, runsFilter, metadataFilter)
-runIds = obj.filterRuns(strict, ...
+runIds = obj.filterRuns('strict', strict, ...
     'models', models, ...
     'scenarios', scenarios, ...
     'runs', runsFilter, ...

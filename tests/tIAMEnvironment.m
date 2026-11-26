@@ -32,7 +32,7 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             normalizedName = genvarname('Temperature Target');
             normalizedMetadata = struct();
             normalizedMetadata.(normalizedName) = 1.5;
-            runIds = env.filterRuns(true, 'metadata', normalizedMetadata);
+            runIds = env.filterRuns('strict', true, 'metadata', normalizedMetadata);
             tc.verifyEqual(runIds, 1001)
 
             tc.verifyEqual(env.Metadata.(policyField).OriginalName, "Policy Status")
@@ -59,6 +59,74 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyEqual(conn.BulkDataRequest.years, ["2020", "2030"])
             tc.verifyEqual(conn.BulkDataRequest.units, "EJ/yr")
             tc.verifyEqual(conn.BulkDataRequest.timeslices, "Year")
+        end
+
+        function testGetTimeSeriesAcceptsNumericAndOmittedYears(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            env.getTimeSeries('models', "Model A", 'years', [2020 2030]);
+            tc.verifyEqual(conn.BulkDataRequest.years, [2020 2030])
+
+            env.getTimeSeries('models', "Model A");
+            tc.verifyEmpty(conn.BulkDataRequest.years)
+        end
+
+        function testGetFrameCollectsRunIDsAcrossMultipleSeries(tc)
+            conn = buildMockConnection();
+            conn.BulkDataResponse = [buildMockTimeseries(), buildMockTimeseries("Emissions")];
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame('models', "Model A");
+
+            tc.verifyEqual(height(frame.summary()), 2)
+            tc.verifyEqual(frame.RunIds, 1001)
+            tc.verifyEqual(frame.RunInfo.run_id, 1001)
+        end
+
+        function testGetFrameAcceptsConfiguredTypedEmptyResponse(tc)
+            conn = buildMockConnection();
+            conn.BulkDataResponse = iam.IAMTimeseries(struct.empty());
+            conn.ReturnConfiguredBulkDataResponse = true;
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame('models', "Model A");
+
+            tc.verifyEmpty(frame.toTable())
+            tc.verifyEmpty(frame.RunInfo)
+        end
+
+        function testNoMatchSkipsBulkDataRequest(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            ts = env.getTimeSeries('models', "Missing Model");
+
+            tc.verifyEmpty(ts)
+            tc.verifyEmpty(fieldnames(conn.BulkDataRequest))
+        end
+
+        function testFilterRunsUsesNamedStrict(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+            filters = struct('PolicyStatus', "Implemented");
+
+            runIds = env.filterRuns('metadata', filters, 'strict', true);
+            appStyleRunIds = env.filterRuns('models', "Model A", 'strict', true);
+
+            tc.verifyEqual(runIds, 1001)
+            tc.verifyEqual(appStyleRunIds, 1001)
+        end
+
+        function testFilterRunsConvertsDropdownValues(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            categoricalRunIds = env.filterRuns('models', categorical("Model A"), 'strict', true);
+            cellRunIds = env.filterRuns('models', {'Model A'}, 'strict', true);
+
+            tc.verifyEqual(categoricalRunIds, 1001)
+            tc.verifyEqual(cellRunIds, 1001)
         end
 
         function testGetFrameReturnsIAMFrame(tc)
@@ -211,7 +279,10 @@ conn = MockIAMConnection( ...
     'MetadataCategories', metadataCategories);
 end
 
-function ts = buildMockTimeseries()
+function ts = buildMockTimeseries(variableName)
+if nargin == 0
+    variableName = "Primary Energy";
+end
 years = [2020; 2030];
 values = [1; 2];
 tt = timetable(datetime(years, 1, 1, 'Format', 'yyyy'), values, ...
@@ -220,7 +291,7 @@ tt = timetable(datetime(years, 1, 1, 'Format', 'yyyy'), values, ...
 ts = iam.IAMTimeseries(struct( ...
     'model', "Model A", ...
     'scenario', "Scenario A", ...
-    'variable', "Primary Energy", ...
+    'variable', variableName, ...
     'region', "World", ...
     'unit', "EJ/yr", ...
     'runId', 1001, ...

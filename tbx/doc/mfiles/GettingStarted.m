@@ -63,7 +63,7 @@ e.filterVariables('Emissions|CO',true) %[output:4545bb3a]
 e.filterRegions('japan',false) %[output:609dd7e7]
 e.filterRegions('State of Japan',true) %[output:36e15380]
 %[text] and with model/scenarios to find out exact runs:
-runs = e.filterRuns('model','GCAM','scenario','delayed','strict',false);
+runs = e.filterRuns('models', "GCAM", 'scenarios', "delayed", 'strict', false);
 e.RunList(ismember(e.RunList.run_id,runs),1:8) %[output:4e23319c]
 %%
 %[text] %[text:anchor:H_E2A14B46] ## Working with the IAM Timeseries

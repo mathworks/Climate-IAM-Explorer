@@ -56,6 +56,10 @@ Supported name-value arguments:
 - `units`
 - `timeslices`
 
+Omit `years` to request all available years. Supply years as numbers (for
+example, `[2020 2030 2050]`) or as strings; both forms are converted to the
+IIASA bulk filter format.
+
 By default, string matching is relaxed and case-insensitive. Set
 `strict=true` to require exact matching, while still allowing wildcard
 patterns such as `"Emissions|CO2*"` and `"Wor*"`.
@@ -154,16 +158,22 @@ Use helper methods to inspect valid selections before querying:
 ```matlab
 env.filterVariables("Primary Energy")
 env.filterRegions(["World", "Europe"], true)
-runs = env.filterRuns(false, 'models', "GCAM*", 'scenarios', "Current*")
+runs = env.filterRuns('models', "GCAM*", 'scenarios', "Current*", 'strict', false)
 ```
 
 `filterRuns()` also accepts a `metadata` struct for metadata-aware selection.
+Pass `strict` as a name-value argument:
 
 ```matlab
 filters = struct();
 filters.TemperatureTarget = 1.5;
 runs = env.filterRuns('metadata', filters, 'strict', true);
+exactRuns = env.filterRuns('strict', true, 'models', "GCAM5.3_NGFS");
 ```
+
+If an explicit model, scenario, run, variable, or region selection matches
+nothing in the cached environment, `getTimeSeries()` returns an empty
+`iam.IAMTimeseries` without sending an empty run filter to the bulk endpoint.
 
 ## Documentation Access
 

@@ -129,16 +129,17 @@ classdef IIASAconnection < iam.data.Connection
             p = inputParser();
             
             func = @(x) isstring(x) | ischar(x);
+            yearFunc = @(x) isnumeric(x) | isstring(x) | ischar(x);
             addParameter(p, 'runs', [], @isnumeric)
             addParameter(p, 'variables', '', func)
             addParameter(p, 'regions', '', func)
-            addParameter(p, 'years', '', func)
+            addParameter(p, 'years', [], yearFunc)
             addParameter(p, 'units', '', func)
             addParameter(p, 'timeslices', '', func)
             
             parse(p, varargin{:});
             
-            runNum = strjoin(string(num2str(p.Results.runs)),',');
+            runNum = strjoin(string(p.Results.runs(:)'),',');
             
             variable   = parseString(p.Results.variables);
             region     = parseString(p.Results.regions);
@@ -336,7 +337,7 @@ classdef IIASAconnection < iam.data.Connection
             end
             
             if ~any(idx)
-                error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of: " + strjoin(obj.AllEnvironments.env,', '))
+                error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of:\n\n " + strjoin(obj.AllEnvironments.env,'   \n '))
             end
             
             if nnz(idx) > 1
