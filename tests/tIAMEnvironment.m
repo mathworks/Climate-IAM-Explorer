@@ -23,16 +23,16 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             conn = buildMockConnection();
             env = iam.IAMEnvironment(conn);
 
-            policyField = matlab.lang.makeValidName('Policy Status');
+            policyField = genvarname('Policy Status');
             metadata = struct();
             metadata.(policyField) = "Implemented";
             runIds = env.filterRuns('metadata', metadata);
             tc.verifyEqual(runIds, 1001)
 
-            normalizedName = matlab.lang.makeValidName('Temperature Target');
+            normalizedName = genvarname('Temperature Target');
             normalizedMetadata = struct();
             normalizedMetadata.(normalizedName) = 1.5;
-            runIds = env.filterRuns('metadata', normalizedMetadata, 'strict', true);
+            runIds = env.filterRuns(true, 'metadata', normalizedMetadata);
             tc.verifyEqual(runIds, 1001)
 
             tc.verifyEqual(env.Metadata.(policyField).OriginalName, "Policy Status")
@@ -72,6 +72,79 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyEqual(height(frame.summary()), 1)
             tc.verifyEqual(frame.RunIds, 1001)
             tc.verifyEqual(height(frame.RunInfo), 1)
+            tc.verifyFalse(ismember('PolicyStatus', frame.RunInfo.Properties.VariableNames))
+        end
+
+        function testIndexReturnsRunIdentity(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            tb = env.index('models', "Model A");
+
+            tc.verifyEqual(tb.model, "Model A")
+            tc.verifyEqual(tb.scenario, "Scenario A")
+            tc.verifyEqual(tb.version, 1)
+        end
+
+        function testMetaProjectsMetadataColumns(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            tb = env.meta('fields', "Policy Status", 'run_id', true);
+
+            tc.verifyTrue(ismember('PolicyStatus', tb.Properties.VariableNames))
+            tc.verifyTrue(ismember('run_id', tb.Properties.VariableNames))
+            tc.verifyEqual(tb.PolicyStatus, ["Implemented"; "Planned"])
+        end
+
+        function testMetaWithoutFieldsDoesNotProjectMetadata(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            tb = env.meta();
+
+            tc.verifyEqual(string(tb.Properties.VariableNames), ["model", "scenario", "version"])
+        end
+
+        function testMetaAllProjectsAllMetadataColumns(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            tb = env.meta('fields', "all");
+
+            tc.verifyTrue(all(ismember(["PolicyStatus", "TemperatureTarget"], string(tb.Properties.VariableNames))))
+        end
+
+        function testRunPropertiesReturnsAuditColumns(tc)
+            conn = buildMockConnection();
+            env = iam.IAMEnvironment(conn);
+
+            tb = env.runProperties('models', "Model A");
+
+            tc.verifyTrue(all(ismember({'cre_user', 'cre_date', 'upd_user', 'upd_date'}, ...
+                tb.Properties.VariableNames)))
+            tc.verifyEqual(tb.run_id, 1001)
+        end
+
+        function testGetFrameCanProjectMetadata(tc)
+            conn = buildMockConnection();
+            conn.BulkDataResponse = buildMockTimeseries();
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame('models', "Model A", 'meta', "Temperature Target");
+
+            tc.verifyTrue(ismember('TemperatureTarget', frame.RunInfo.Properties.VariableNames))
+            tc.verifyEqual(frame.RunInfo.TemperatureTarget, 1.5)
+        end
+
+        function testGetFrameMetaAllProjectsAllMetadata(tc)
+            conn = buildMockConnection();
+            conn.BulkDataResponse = buildMockTimeseries();
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame('models', "Model A", 'meta', "all");
+
+            tc.verifyTrue(all(ismember(["PolicyStatus", "TemperatureTarget"], string(frame.RunInfo.Properties.VariableNames))))
         end
 
         function testFilterRegionsSupportsMultipleSelections(tc)

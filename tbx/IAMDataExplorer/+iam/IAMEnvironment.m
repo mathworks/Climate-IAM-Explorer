@@ -45,54 +45,73 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             obj.setEnvironment();
         end
         
-        function ts = getTimeSeries(obj, varargin)
-            
-            p = inputParser();
-            
-            func = @(x) isstring(x) | ischar(x);
-            
-            addParameter(p, 'strict', false)
-            addParameter(p, 'models','', func)
-            addParameter(p, 'scenarios','', func)
-            addParameter(p, 'runs', [], @isnumeric)
-            addParameter(p, 'variables', '', func)
-            addParameter(p, 'regions', '', func)
-            addParameter(p, 'years', '', func)
-            addParameter(p, 'units', '', func)
-            addParameter(p, 'timeslices', '', func)
-            
-            parse(p, varargin{:});
-            
-            r = p.Results;
-            
-            variables = obj.filterVariables(r.variables, r.strict);
-            regions = obj.filterRegions(r.regions, r.strict);
-            
-            runIds = obj.filterRuns(r.strict, ...
-                'models',r.models, ...
-                'scenarios', r.scenarios, ...
-                'runs', r.runs);
-            
+        function ts = getTimeSeries(obj, opts)
+            arguments
+                obj
+                opts.strict (1,1) logical = false
+                opts.models (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs double = []
+                opts.variables (1,:) string = strings(0,1)
+                opts.regions (1,:) string = strings(0,1)
+                opts.years = []
+                opts.units (1,:) string = strings(0,1)
+                opts.timeslices (1,:) string = strings(0,1)
+            end
+
+            variables = obj.filterVariables(opts.variables, opts.strict);
+            regions = obj.filterRegions(opts.regions, opts.strict);
+
+            runIds = obj.filterRuns(opts.strict, ...
+                'models', opts.models, ...
+                'scenarios', opts.scenarios, ...
+                'runs', opts.runs);
+
             ts = obj.Connection.getBulkData( ...
                 'runs', runIds, ...
                 'variables', variables, ...
                 'regions', regions, ...
-                'years', r.years, ...
-                'units', r.units, ...
-                'timeslices', r.timeslices);
-            
+                'years', opts.years, ...
+                'units', opts.units, ...
+                'timeslices', opts.timeslices);
         end
 
-        function frame = getFrame(obj, varargin)
-            ts = obj.getTimeSeries(varargin{:});
+        function frame = getFrame(obj, opts)
+            arguments
+                obj
+                opts.strict (1,1) logical = false
+                opts.models (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs double = []
+                opts.variables (1,:) string = strings(0,1)
+                opts.regions (1,:) string = strings(0,1)
+                opts.years = []
+                opts.units (1,:) string = strings(0,1)
+                opts.timeslices (1,:) string = strings(0,1)
+                opts.meta (1,:) string = strings(0,1)
+            end
+
+            ts = obj.getTimeSeries( ...
+                'strict', opts.strict, ...
+                'models', opts.models, ...
+                'scenarios', opts.scenarios, ...
+                'runs', opts.runs, ...
+                'variables', opts.variables, ...
+                'regions', opts.regions, ...
+                'years', opts.years, ...
+                'units', opts.units, ...
+                'timeslices', opts.timeslices);
             if ~isa(ts, 'iam.IAMTimeseries')
                 error('IAMEnvironment:getFrame:InvalidResponse', ...
                     'getFrame requires the connection to return IAMTimeseries data.')
             end
 
+            runInfo = obj.RunList(ismember(obj.RunList.run_id, ts.RunId), :);
+            runInfo = projectRunMetadata(runInfo, obj.Metadata, opts.meta);
+
             frame = ts.toFrame();
             frame = iam.IAMFrame(frame.toTable(), ...
-                'RunInfo', obj.RunList(ismember(obj.RunList.run_id, frame.RunIds), :));
+                'RunInfo', runInfo);
         end
         
         function doc = getModelDocumentation(obj,modelID)            
@@ -115,48 +134,56 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             envs = obj.Connection.getEnvironments;
         end
         
-        function vars = filterVariables(obj, varargin)
-            
-            vars = filterVar(obj, 'Variables', varargin{:});
+        function vars = filterVariables(obj, data, strict)
+            arguments
+                obj
+                data (1,:) string = strings(0,1)
+                strict (1,1) logical = false
+            end
+
+            vars = filterVar(obj, 'Variables', data, strict);
         end
         
-        function vars = filterRegions(obj, varargin)
-            
-            vars = filterVar(obj, 'Regions', varargin{:});
-            
+        function vars = filterRegions(obj, data, strict)
+            arguments
+                obj
+                data (1,:) string = strings(0,1)
+                strict (1,1) logical = false
+            end
+
+            vars = filterVar(obj, 'Regions', data, strict);
         end
         
-        function runIDs = filterRuns(obj, varargin)
+        function runIDs = filterRuns(obj, strict, nvp)
             % FILTERRUNS get Run IDs for runs based on model, scenario, or
             % metadata.
-            p = inputParser();
+            arguments
+                obj
+                strict (1,1) logical = false
+                nvp.models (1,:) string = strings(0,1)
+                nvp.scenarios (1,:) string = strings(0,1)
+                nvp.runs      (1,:) double = []
+                nvp.metadata  struct = struct.empty()
+            end     
             
-            func = @(x) isstring(x) | ischar(x) | iscellstr(x);
-            
-            addOptional(p, 'strict', false)
-            addParameter(p, 'models','', func)
-            addParameter(p, 'scenarios','', func)
-            addParameter(p, 'runs', [], @isnumeric)
-            addParameter(p, 'metadata', struct.empty(), @(x) checkValidMetadata(x, obj.Metadata))
-            
-            parse(p, varargin{:});
+            checkValidMetadata(nvp.metadata, obj.Metadata)
 
             idx = true(height(obj.RunList),1);
-            if ~isempty(p.Results.models)
-                idx = idx & matchStringValues(obj.RunList.model, p.Results.models, p.Results.strict);
+            if ~isempty(nvp.models)
+                idx = idx & matchStringValues(obj.RunList.model, nvp.models, strict);
             end
-            if ~isempty(p.Results.scenarios)
-                idx = idx & matchStringValues(obj.RunList.scenario, p.Results.scenarios, p.Results.strict);
+            if ~isempty(nvp.scenarios)
+                idx = idx & matchStringValues(obj.RunList.scenario, nvp.scenarios, strict);
             end
-            if ~isempty(p.Results.runs)
-                idx = idx & ismember(obj.RunList.run_id, p.Results.runs);
+            if ~isempty(nvp.runs)
+                idx = idx & ismember(obj.RunList.run_id, nvp.runs);
             end
             
-            if ~isempty(p.Results.metadata)
-                for f = fields(p.Results.metadata)
+            if ~isempty(nvp.metadata)
+                for f = fields(nvp.metadata)
                     fieldName = resolveMetadataFieldName(obj.Metadata, f{1});
                     values = metadataValuesAsString(obj.RunList.metadata, fieldName);
-                    idx = idx & matchStringValues(values, p.Results.metadata.(f{1}), p.Results.strict);
+                    idx = idx & matchStringValues(values, nvp.metadata.(f{1}), strict);
                 end
             end
             
@@ -168,6 +195,69 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             
             params = obj.Connection.getRunDetails(runId);
             
+        end
+
+        function tb = index(obj, opts)
+            arguments
+                obj
+                opts.strict (1,1) logical = false
+                opts.models (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs double = []
+                opts.metadata struct = struct.empty()
+            end
+
+            checkValidMetadata(opts.metadata, obj.Metadata)
+
+            runs = selectRunsTable(obj, opts.strict, opts.models, opts.scenarios, opts.runs, opts.metadata);
+            cols = intersect(["model", "scenario", "version"], string(runs.Properties.VariableNames), 'stable');
+            tb = runs(:, cellstr(cols));
+        end
+
+        function tb = meta(obj, opts)
+            arguments
+                obj
+                opts.fields (1,:) string = strings(0,1)
+                opts.run_id (1,1) logical = false
+                opts.strict (1,1) logical = false
+                opts.models (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs double = []
+                opts.metadata struct = struct.empty()
+            end
+
+            checkValidMetadata(opts.metadata, obj.Metadata)
+
+            runs = selectRunsTable(obj, opts.strict, opts.models, opts.scenarios, opts.runs, opts.metadata);
+            runs = projectRunMetadata(runs, obj.Metadata, opts.fields);
+
+            cols = ["model", "scenario", "version"];
+            if opts.run_id
+                cols = [cols, "run_id"];
+            end
+            cols = [cols, getProjectedMetadataFieldNames(obj.Metadata, opts.fields)'];
+            cols = intersect(cols, string(runs.Properties.VariableNames), 'stable');
+            tb = runs(:, cellstr(cols));
+        end
+
+        function tb = runProperties(obj, opts)
+            arguments
+                obj
+                opts.strict    (1,1) logical = false
+                opts.models    (1,:) string = strings(0,1)
+                opts.scenarios (1,:) string = strings(0,1)
+                opts.runs            double = []
+                opts.metadata        struct = struct.empty()
+            end
+
+            checkValidMetadata(opts.metadata, obj.Metadata)
+
+            runs = selectRunsTable(obj, opts.strict, opts.models, opts.scenarios, opts.runs, opts.metadata);
+            cols = intersect(["model", "scenario", "version", "is_default", "run_id", ...
+                "cre_user", "cre_date", "upd_user", "upd_date", ...
+                "lock_user", "lock_date", "is_locked"], ...
+                string(runs.Properties.VariableNames), 'stable');
+            tb = runs(:, cellstr(cols));
         end
         
     end
@@ -238,11 +328,7 @@ if ~ismethod(connection, 'getMetadataCategories')
     return
 end
 
-try
-    categories = connection.getMetadataCategories();
-catch
-    return
-end
+categories = connection.getMetadataCategories();
 
 if isempty(categories) || ~ismember("name", categories.Properties.VariableNames)
     return
@@ -427,8 +513,9 @@ end
 
 function checkValidMetadata(input, meta)
 
-if ~isstruct(input)
-    error('IIASAEnvironment:checkValidMetadata:InvalidMetadataType','Metadata must be a struct')
+arguments
+    input struct
+    meta
 end
 
 validNames = lower(getMetadataFieldNames(meta));
@@ -448,4 +535,98 @@ for fieldName = string(fields(meta))'
 end
 
 names = unique(names(strlength(names) > 0));
+end
+
+function runs = selectRunsTable(obj, strict, models, scenarios, runsFilter, metadataFilter)
+runIds = obj.filterRuns(strict, ...
+    'models', models, ...
+    'scenarios', scenarios, ...
+    'runs', runsFilter, ...
+    'metadata', metadataFilter);
+runs = obj.RunList(ismember(obj.RunList.run_id, runIds), :);
+end
+
+function runInfo = projectRunMetadata(runInfo, metadata, selection)
+if isempty(runInfo) || ~ismember("metadata", runInfo.Properties.VariableNames)
+    return
+end
+
+fieldsToProject = getProjectedMetadataFieldNames(metadata, selection);
+if isempty(fieldsToProject)
+    return
+end
+
+for i = 1 : numel(fieldsToProject)
+    fieldName = fieldsToProject(i);
+    values = metadataValuesAsTypedColumn(runInfo.metadata, fieldName, metadata);
+    runInfo.(fieldName) = values;
+end
+end
+
+function fieldNames = getProjectedMetadataFieldNames(metadata, selection)
+allFields = string(fields(metadata));
+if isempty(allFields)
+    fieldNames = strings(0,1);
+    return
+end
+
+selection = string(selection);
+selection = selection(strlength(selection) > 0);
+if isempty(selection)
+    fieldNames = strings(0,1);
+    return
+end
+
+if any(matches(selection, "all", 'IgnoreCase', true))
+    fieldNames = allFields;
+    return
+end
+
+fieldNames = strings(0,1);
+for name = selection(:)'
+    fieldNames(end+1,1) = resolveMetadataFieldName(metadata, name); %#ok<AGROW>
+end
+fieldNames = unique(fieldNames, 'stable');
+end
+
+function values = metadataValuesAsTypedColumn(metadataValues, fieldName, metadata)
+count = numel(metadataValues);
+defaultValue = metadata.(fieldName).DefaultValue;
+
+if isstring(defaultValue)
+    values = repmat("", count, 1);
+elseif islogical(defaultValue)
+    values = repmat(defaultValue, count, 1);
+elseif isnumeric(defaultValue)
+    values = repmat(double(defaultValue), count, 1);
+else
+    values = repmat(string(missing), count, 1);
+end
+
+for i = 1 : count
+    current = getRunMetadataStruct(metadataValues(i));
+    if isfield(current, fieldName)
+        currentValue = current.(fieldName);
+    else
+        currentValue = defaultValue;
+    end
+
+    if isstring(values)
+        values(i) = scalarToString(currentValue);
+    elseif islogical(values)
+        if isempty(currentValue)
+            values(i) = defaultValue;
+        else
+            values(i) = logical(currentValue);
+        end
+    elseif isnumeric(values)
+        if isempty(currentValue)
+            values(i) = double(defaultValue);
+        else
+            values(i) = double(currentValue);
+        end
+    else
+        values(i) = scalarToString(currentValue);
+    end
+end
 end

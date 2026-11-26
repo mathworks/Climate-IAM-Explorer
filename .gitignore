@@ -40,7 +40,6 @@ tbx/doc/*.html
 tbx/doc/*.xml
 
 #
-tbx/doc/*.md
 tbx/doc/resources
 
 # buildresults

@@ -34,12 +34,13 @@ opts.AuthorCompany = "MathWorks";
 opts.AuthorEmail = "ebenetce@mathworks.com";
 opts.Description = "This repository contains a set of tools to allow users explore integrated assesmemnt models and some examples showcasing how one can use this information in conjuntion to financial applications. The models accessible by the tool include the different datasets hosted by the IIASA Energy program (ENE), but it is extensible to your own custom models.";
 opts.Summary = "App to explore Integrated Assessment Model results";
-opts.AppGalleryFiles = "tbx/IAMDataExplorer/app/IAMDataExplorer.mlapp";
-opts.ToolboxGettingStartedGuide = "tbx/doc/GettingStarted.mlx";
+opts.AppGalleryFiles = fullfile("tbx", "IAMDataExplorer", "app", "IAMDataExplorer.mlapp");
+opts.ToolboxGettingStartedGuide = fullfile("tbx", "doc", "mfiles", "GettingStarted.m");
 opts.ToolboxName = "Climate IAM Explorer";
 opts.ToolboxVersion = v.Version;
-opts.ToolboxMatlabPath = ["tbx/IAMDataExplorer", "tbx/IAMDataExplorer/app", "tbx/ISMIPExplorer"];
-opts.OutputFile = 'releases/IAMDataExplorer.mltbx';
+opts.ToolboxMatlabPath = [fullfile("tbx", "IAMDataExplorer"), fullfile("tbx", "IAMDataExplorer", "app"), fullfile("tbx", "tbx", "ISMIPExplorer")];
+opts.OutputFile = fullfile("releases", "IAMDataExplorer.mltbx");
 
 matlab.addons.toolbox.packageToolbox(opts)
+
 end

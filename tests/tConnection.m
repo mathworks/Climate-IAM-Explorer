@@ -20,6 +20,15 @@ classdef tConnection < matlab.uitest.TestCase
             tc.verifyClass(e, 'iam.IAMEnvironment')
 
         end
+
+        function testNGFSconnectionPhase5MetadataCategories(tc)
+
+            c = iam.data.IIASAconnection('ngfs_phase_5');
+            categories = c.getMetadataCategories();
+
+            tc.verifyClass(categories, 'table')
+
+        end
         
     end
 

@@ -77,8 +77,11 @@ classdef IIASAconnection < iam.data.Connection
             url = strjoin([obj.Config.baseUrl, "metadata/types"], "/");
             
             value = obj.getRequest(url);
-            
-            value = struct2table(value);
+            if isempty(value)
+                value = table.empty();
+            else
+                value = struct2table(value);
+            end
             
         end
         

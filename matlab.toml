@@ -1,0 +1,15 @@
+name = "iam-explorer"
+
+[folders]
+path = [
+    "examples/Loan Portfolio Climate Stress Test",
+    "examples/Pricing Weather Derivatives",
+    "tbx/IAMDataExplorer",
+    "tbx/IAMDataExplorer/app",
+    "tbx/ISMIPExplorer",
+    "tbx/doc",
+    "tests",
+]
+test = [
+    "tests",
+]
