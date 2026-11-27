@@ -62,7 +62,17 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             
         end
         
-        function addData(obj, data)
+        function addData(obj, data, opts)
+            %addData - Add a time series or frame to the workbook
+            %   addData(OBJ,DATA) adds DATA using the default repeat policy.
+            %
+            %   addData(OBJ,DATA,RepeatPolicy=POLICY) selects how identical
+            %   repeated observations are handled during merging.
+            arguments
+                obj
+                data
+                opts.RepeatPolicy {mustBeTextScalar} = "error"
+            end
             
             if isa(data, 'iam.IAMTimeseries')
                 frame = data.toFrame();
@@ -75,7 +85,8 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             if isempty(frame.toTable())
                 obj.Data = iam.IAMFrame();
             else
-                obj.Data = mergeFramesUnique(obj.Data, frame);
+                obj.Data = obj.Data.append(frame, ...
+                    RepeatPolicy=opts.RepeatPolicy);
             end
 
             obj.refreshState();
@@ -459,49 +470,4 @@ function tb = defaultRunList()
 tb = table('Size', [0, 6], ...
     'VariableNames', {'Model','Scenario','Variable','Region','RunId','Version'}, ...
     'VariableTypes', {'string','string','string','string','double','double'});
-end
-
-function frame = mergeFramesUnique(leftFrame, rightFrame)
-leftData = leftFrame.toTable();
-rightData = rightFrame.toTable();
-
-if isempty(leftData)
-    frame = rightFrame;
-    return
-end
-
-if isempty(rightData)
-    frame = leftFrame;
-    return
-end
-
-data = [leftData; rightData];
-[~, ia] = unique(data(:, {'Model','Scenario','Variable','Region','Unit','RunId','Version','Year'}), 'rows', 'stable');
-data = data(sort(ia), :);
-
-runInfo = mergeRunInfoTables(leftFrame.RunInfo, rightFrame.RunInfo);
-frame = iam.IAMFrame(data, 'RunInfo', runInfo);
-end
-
-function runInfo = mergeRunInfoTables(leftInfo, rightInfo)
-if isempty(leftInfo)
-    runInfo = rightInfo;
-    return
-end
-
-if isempty(rightInfo)
-    runInfo = leftInfo;
-    return
-end
-
-if ~isequal(leftInfo.Properties.VariableNames, rightInfo.Properties.VariableNames)
-    runInfo = leftInfo;
-    return
-end
-
-runInfo = [leftInfo; rightInfo];
-if ismember('run_id', runInfo.Properties.VariableNames)
-    [~, ia] = unique(runInfo.run_id, 'stable');
-    runInfo = runInfo(ia, :);
-end
 end

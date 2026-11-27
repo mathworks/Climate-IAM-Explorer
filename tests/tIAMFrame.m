@@ -104,6 +104,290 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyEqual(merged.RunIds, [101; 202])
         end
 
+        function testAppendDeduplicatesIdenticalObservationsAndUnionsRunInfo(tc)
+            leftInfo = table("Model", "Baseline", 1, 11, "Source A", false, ...
+                VariableNames=["model", "scenario", "version", "run_id", ...
+                "Source", "is_default"]);
+            rightInfo = table("Model", "Baseline", 1, 22, 1.5, ...
+                VariableNames=["model", "scenario", "version", "run_id", ...
+                "TemperatureTarget"]);
+            left = singleObservationFrame("Baseline", 11, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 22, 5, rightInfo);
+
+            merged = left.append(right, RepeatPolicy="deduplicate");
+            filtered = merged.filter(scenarios="Baseline", strict=true);
+
+            tc.verifyEqual(height(merged.toTable()), 1)
+            tc.verifyTrue(isnan(merged.toTable().RunId))
+            tc.verifyEqual(height(merged.RunInfo), 2)
+            tc.verifyEqual(merged.RunInfo.TemperatureTarget(2), 1.5)
+            tc.verifyEqual(merged.RunInfo.is_default(1), 0)
+            tc.verifyTrue(isnan(merged.RunInfo.is_default(2)))
+            tc.verifyEqual(merged.RunInfo.Source(1), "Source A")
+            tc.verifyTrue(ismissing(merged.RunInfo.Source(2)))
+            tc.verifyEqual(height(filtered.RunInfo), 2)
+        end
+
+        function testAppendRejectsChangedRepeatedValue(tc)
+            left = singleObservationFrame("Baseline", 11, 5, table());
+            right = singleObservationFrame("Baseline", 22, 6, table());
+
+            tc.verifyError(@() left.append(right, ...
+                RepeatPolicy="deduplicate"), ...
+                "iam:IAMFrame:ConflictingObservation")
+        end
+
+        function testAppendRejectsConflictingRunInfoValues(tc)
+            leftInfo = table("Model", "Baseline", 1, 11, "Policy A", ...
+                VariableNames=["model", "scenario", "version", "run_id", "Policy"]);
+            rightInfo = table("Model", "Baseline", 1, 11, "Policy B", ...
+                VariableNames=["model", "scenario", "version", "run_id", "Policy"]);
+            left = singleObservationFrame("Baseline", 11, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 11, 6, rightInfo, 2030);
+
+            tc.verifyError(@() left.append(right), ...
+                "iam:IAMFrame:IncompatibleRunInfo")
+        end
+
+        function testRunInfoRunIdCollisionStaysWithItsScenario(tc)
+            firstInfo = table("Model", "Scenario A", 1, 7, "First", ...
+                VariableNames=["model", "scenario", "version", "run_id", "Category"]);
+            secondInfo = table("Model", "Scenario B", 1, 7, "Second", ...
+                VariableNames=["model", "scenario", "version", "run_id", "Category"]);
+            first = singleObservationFrame("Scenario A", 7, 5, firstInfo);
+            second = singleObservationFrame("Scenario B", 7, 8, secondInfo);
+
+            merged = first.append(second);
+            scenarioA = merged.filter(scenarios="Scenario A", strict=true);
+            scenarioB = merged.filter(scenarios="Scenario B", strict=true);
+
+            tc.verifyEqual(height(merged.RunInfo), 2)
+            tc.verifyEqual(scenarioA.RunInfo.Category, "First")
+            tc.verifyEqual(scenarioB.RunInfo.Category, "Second")
+        end
+
+        function testAppendRejectsAmbiguousProviderRunIdMetadata(tc)
+            runInfo = table(7, "Shared", ...
+                VariableNames=["run_id", "Category"]);
+            first = singleObservationFrame("Scenario A", 7, 5, runInfo);
+            second = singleObservationFrame("Scenario B", 7, 8, runInfo);
+
+            tc.verifyError(@() first.append(second), ...
+                "iam:IAMFrame:AmbiguousRunInfo")
+        end
+
+        function testAppendAcceptsEnvironmentNestedMetadata(tc)
+            info = table("Model", "Baseline", 1, 7, ...
+                struct('Category', "A"), ...
+                VariableNames=["model","scenario","version","run_id","metadata"]);
+            source = singleObservationFrame("Baseline", 7, 5, info);
+            conn = MockIAMConnection('Runs', info, ...
+                'BulkDataResponse', source.toTimeseries(), ...
+                'MetadataCategories', table("Category", "string value", ...
+                VariableNames=["name","type"]));
+            env = iam.IAMEnvironment(conn);
+            downloaded = env.getFrame(meta="all");
+
+            merged = iam.IAMFrame().append(downloaded);
+
+            tc.verifyEqual(merged.toTable(), downloaded.toTable())
+            tc.verifyEqual(merged.RunInfo.metadata{1}.Category, "A")
+            tc.verifyEqual(merged.RunInfo.Category, "A")
+        end
+
+        function testAppendMergesNestedMetadataFields(tc)
+            leftInfo = table(7, struct('Policy', struct('Category', "A")), ...
+                VariableNames=["run_id","metadata"]);
+            rightInfo = table(7, struct('Policy', struct('Target', 1.5)), ...
+                VariableNames=["run_id","metadata"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(height(merged.RunInfo), 1)
+            tc.verifyEqual(merged.RunInfo.metadata{1}.Policy, ...
+                struct('Category', "A", 'Target', 1.5))
+        end
+
+        function testAppendRejectsNestedMetadataConflict(tc)
+            leftInfo = table(7, struct('Policy', struct('Category', "A")), ...
+                VariableNames=["run_id","metadata"]);
+            rightInfo = table(7, struct('Policy', struct('Category', "B")), ...
+                VariableNames=["run_id","metadata"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            tc.verifyError(@() left.append(right), "iam:IAMFrame:IncompatibleRunInfo")
+        end
+
+        function testAppendMatchesCompatibleNestedTextTypes(tc)
+            leftInfo = table(7, struct('Category', "A"), ...
+                VariableNames=["run_id","metadata"]);
+            rightInfo = table(7, struct('Category', char("A")), ...
+                VariableNames=["run_id","metadata"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(height(merged.RunInfo), 1)
+            tc.verifyEqual(merged.RunInfo.metadata{1}.Category, "A")
+        end
+
+        function testAppendFillsMissingNestedMetadata(tc)
+            leftInfo = table(7, {[]}, VariableNames=["run_id","metadata"]);
+            rightInfo = table(7, struct('Category', "A"), ...
+                VariableNames=["run_id","metadata"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(merged.RunInfo.metadata{1}, struct('Category', "A"))
+        end
+
+        function testAppendRejectsConflictWithPartialRunInfoIdentity(tc)
+            leftInfo = table(7, "A", VariableNames=["run_id","Category"]);
+            rightInfo = table("Model", "Baseline", 1, 7, "B", ...
+                VariableNames=["model","scenario","version","run_id","Category"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            tc.verifyError(@() left.append(right), "iam:IAMFrame:IncompatibleRunInfo")
+            tc.verifyError(@() right.append(left), "iam:IAMFrame:IncompatibleRunInfo")
+        end
+
+        function testAppendCombinesCompatiblePartialRunInfoIdentity(tc)
+            leftInfo = table(7, "A", VariableNames=["run_id","Category"]);
+            rightInfo = table("Model", "Baseline", 1, 7, 1.5, ...
+                VariableNames=["model","scenario","version","run_id","Target"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(height(merged.RunInfo), 1)
+            tc.verifyEqual(merged.RunInfo.Category, "A")
+            tc.verifyEqual(merged.RunInfo.Target, 1.5)
+            tc.verifyEqual(merged.RunInfo.model, "Model")
+            tc.verifyEqual(merged.RunInfo.scenario, "Baseline")
+        end
+
+        function testAppendCombinesCaseInsensitiveIdentityColumns(tc)
+            leftInfo = table("Model", "Baseline", 1, 7, "A", ...
+                VariableNames=["Model","Scenario","Version","Run_ID","Category"]);
+            rightInfo = table("Model", "Baseline", 1, 7, 1.5, ...
+                VariableNames=["model","scenario","version","run_id","Target"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(height(merged.RunInfo), 1)
+            tc.verifyEqual(merged.RunInfo.model, "Model")
+            tc.verifyEqual(merged.RunInfo.Category, "A")
+            tc.verifyEqual(merged.RunInfo.Target, 1.5)
+        end
+
+        function testAppendKeepsMixedCaseSourceIdentitiesSeparate(tc)
+            leftInfo = table("Model", "Baseline", 1, 7, "Shared", ...
+                VariableNames=["model","scenario","version","run_id","Category"]);
+            rightInfo = table("Other model", "Baseline", 1, 7, "Shared", ...
+                VariableNames=["Model","Scenario","Version","Run_ID","Category"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            rightData = singleObservationFrame("Baseline", 7, 6, table()).toTable();
+            rightData.Model = "Other model";
+            right = iam.IAMFrame(rightData, RunInfo=rightInfo);
+
+            merged = left.append(right);
+            selected = merged.filter(models="Other model", strict=true);
+
+            tc.verifyEqual(height(merged.RunInfo), 2)
+            tc.verifyEqual(selected.RunInfo.model, "Other model")
+            tc.verifyEqual(selected.RunInfo.Category, "Shared")
+        end
+
+        function testAppendRejectsDuplicateIdentityAliases(tc)
+            info = table(7, 8, VariableNames=["run_id","Run_ID"]);
+            frame = singleObservationFrame("Baseline", 7, 5, info);
+
+            tc.verifyError(@() iam.IAMFrame().append(frame), ...
+                "iam:IAMFrame:IncompatibleRunInfo")
+        end
+
+        function testAppendRejectsArrayValuedMetadataWithoutReshaping(tc)
+            info = table([10 20], VariableNames="Weights");
+            frame = singleObservationFrame("Baseline", 7, 5, info);
+
+            tc.verifyError(@() iam.IAMFrame().append(frame), ...
+                "iam:IAMFrame:IncompatibleRunInfo")
+            tc.verifyEqual(frame.RunInfo.Weights, [10 20])
+        end
+
+        function testAppendPreservesTimezoneWhenPaddingMetadata(tc)
+            info = table("Model", "Baseline", 1, 7, ...
+                datetime(2026,1,1,TimeZone="UTC"), ...
+                VariableNames=["model","scenario","version","run_id","Retrieved"]);
+            left = singleObservationFrame("Baseline", 7, 5, info);
+            right = singleObservationFrame("Other", 8, 6, ...
+                table(8, VariableNames="run_id"));
+
+            merged = left.append(right);
+            reversed = right.append(left);
+
+            tc.verifyEqual(merged.RunInfo.Retrieved.TimeZone, 'UTC')
+            tc.verifyEqual(merged.RunInfo.Retrieved(1), info.Retrieved)
+            tc.verifyTrue(isnat(merged.RunInfo.Retrieved(2)))
+            tc.verifyEqual(reversed.RunInfo.Retrieved.TimeZone, 'UTC')
+            tc.verifyTrue(isnat(reversed.RunInfo.Retrieved(1)))
+        end
+
+        function testAppendPreservesEquivalentTimezoneInstants(tc)
+            leftInfo = table(7, datetime(2026,1,1,TimeZone="UTC"), ...
+                VariableNames=["run_id","Retrieved"]);
+            rightInfo = leftInfo;
+            rightInfo.Retrieved.TimeZone = "America/New_York";
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+
+            tc.verifyEqual(merged.RunInfo.Retrieved, leftInfo.Retrieved)
+            tc.verifyEqual(merged.RunInfo.Retrieved.TimeZone, leftInfo.Retrieved.TimeZone)
+            tc.verifyEqual(right.RunInfo.Retrieved.TimeZone, rightInfo.Retrieved.TimeZone)
+        end
+
+        function testAppendFillsMissingTimezoneMetadata(tc)
+            leftInfo = table(7, datetime(2026,1,1,TimeZone="UTC"), ...
+                VariableNames=["run_id","Retrieved"]);
+            rightInfo = table(7, NaT, VariableNames=["run_id","Retrieved"]);
+            left = singleObservationFrame("Baseline", 7, 5, leftInfo);
+            right = singleObservationFrame("Baseline", 7, 6, rightInfo, 2030);
+
+            merged = left.append(right);
+            reversed = right.append(left);
+
+            tc.verifyEqual(merged.RunInfo.Retrieved, leftInfo.Retrieved)
+            tc.verifyEqual(reversed.RunInfo.Retrieved, leftInfo.Retrieved)
+            tc.verifyEqual(reversed.RunInfo.Retrieved.TimeZone, leftInfo.Retrieved.TimeZone)
+            tc.verifyEqual(right.RunInfo.Retrieved.TimeZone, rightInfo.Retrieved.TimeZone)
+        end
+
+        function testAppendKeepsSourceRecordsWithoutOriginalRunInfo(tc)
+            left = singleObservationFrame("Baseline", 7, 5, table());
+            right = singleObservationFrame("Baseline", 8, 5, table());
+
+            merged = left.append(right, RepeatPolicy="deduplicate");
+            filtered = merged.filter(scenarios="Baseline", strict=true);
+
+            tc.verifyTrue(isnan(merged.toTable().RunId))
+            tc.verifyEqual(merged.RunInfo.run_id, [7; 8])
+            tc.verifyEqual(merged.RunInfo.model, ["Model"; "Model"])
+            tc.verifyEqual(merged.RunInfo.scenario, ["Baseline"; "Baseline"])
+            tc.verifyEqual(filtered.RunInfo, merged.RunInfo)
+        end
+
         function testLocalLongTableWithoutSourceIdsRoundTrips(tc)
             data = localLongData();
             frame = iam.IAMFrame(data);
@@ -336,4 +620,15 @@ data = table(["Local model"; "Local model"], ...
     ["World"; "World"], strings(2,1), [2020; 2030], [1; NaN], ...
     'VariableNames', {'Model', 'Scenario', 'Variable', 'Region', ...
     'Unit', 'Year', 'Value'});
+end
+
+function frame = singleObservationFrame(scenario, runId, value, runInfo, year)
+if nargin < 5
+    year = 2020;
+end
+data = table("Model", scenario, "Energy", "World", "EJ/yr", ...
+    runId, 1, year, value, ...
+    VariableNames=["Model", "Scenario", "Variable", "Region", ...
+    "Unit", "RunId", "Version", "Year", "Value"]);
+frame = iam.IAMFrame(data, RunInfo=runInfo);
 end

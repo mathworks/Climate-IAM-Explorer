@@ -47,6 +47,7 @@ classdef IAMFrame
             validateUniqueObservations(obj.Data);
 
             obj.RunInfo = nvp.RunInfo;
+            validateRunInfoMapping(obj.RunInfo, obj.Data);
         end
 
         function value = get.Models(obj)
@@ -138,17 +139,45 @@ classdef IAMFrame
             end
 
             data = obj.Data(idx, :);
-            runInfo = subsetRunInfo(obj.RunInfo, data.RunId);
+            runInfo = subsetRunInfo(obj.RunInfo, data);
             out = iam.IAMFrame(data, 'RunInfo', runInfo);
         end
 
-        function out = append(obj, other)
+        function out = append(obj, other, nvp)
+            %append - Merge another frame using a shared conflict policy
+            %   OUT = append(OBJ,OTHER) merges non-overlapping observations
+            %   from OTHER into OBJ. Repeated observations raise an error.
+            %
+            %   OUT = append(OBJ,OTHER,RepeatPolicy=POLICY) selects how
+            %   identical repeated observations are handled. POLICY is
+            %   "error" or "deduplicate"; changed values always raise an
+            %   error. Compatible RunInfo schemas are combined by column;
+            %   ambiguous source IDs raise an error.
+            arguments
+                obj
+                other
+                nvp.RepeatPolicy {mustBeTextScalar} = "error"
+            end
+
+            repeatPolicy = string(nvp.RepeatPolicy);
+            if ~ismember(repeatPolicy, ["error", "deduplicate"])
+                error('iam:IAMFrame:InvalidRepeatPolicy', ...
+                    'RepeatPolicy must be "error" or "deduplicate".')
+            end
+
             if ~isa(other, 'iam.IAMFrame')
                 other = iam.IAMFrame(other);
             end
 
             data = [obj.Data; other.Data];
-            out = iam.IAMFrame(data, 'RunInfo', mergeRunInfo(obj.RunInfo, other.RunInfo));
+            validateRunInfoMapping(obj.RunInfo, data);
+            validateRunInfoMapping(other.RunInfo, data);
+            [data, provenance] = mergeObservations(data, repeatPolicy);
+            runInfo = mergeRunInfo(obj.RunInfo, other.RunInfo);
+            if ~isempty(provenance)
+                runInfo = mergeRunInfo(runInfo, provenance);
+            end
+            out = iam.IAMFrame(data, 'RunInfo', runInfo);
         end
 
         function tb = timeseries(obj)
@@ -468,38 +497,440 @@ for i = 1 : numel(names)
 end
 end
 
-function runInfo = subsetRunInfo(runInfo, runIds)
-if isempty(runInfo) || ~ismember('run_id', runInfo.Properties.VariableNames)
+function runInfo = subsetRunInfo(runInfo, data)
+if isempty(runInfo) || isempty(data)
+    runInfo = runInfo([],:);
     return
 end
 
-runInfo = runInfo(ismember(runInfo.run_id, unique(runIds)), :);
+runInfoNames = lower(string(runInfo.Properties.VariableNames));
+identityNames = ["run_id", "model", "scenario", "version"];
+dataNames = ["RunId", "Model", "Scenario", "Version"];
+available = ismember(identityNames, runInfoNames);
+if ~any(available)
+    return
+end
+
+keep = false(height(runInfo), 1);
+for i = 1 : height(runInfo)
+    match = true(height(data), 1);
+    hasAnalyticalKey = false;
+    runIdMatch = true(height(data), 1);
+    hasRunIdKey = false;
+    for j = find(available)
+        name = runInfo.Properties.VariableNames{find(runInfoNames == identityNames(j), 1)};
+        value = runInfo.(name)(i);
+        if isMissingMetadataValue(value)
+            continue
+        end
+        if identityNames(j) == "run_id"
+            hasRunIdKey = true;
+            runIdMatch = matchMetadataIdentity(data.(dataNames(j)), value);
+        else
+            hasAnalyticalKey = true;
+            match = match & matchMetadataIdentity(data.(dataNames(j)), value);
+        end
+    end
+    if hasRunIdKey && hasAnalyticalKey
+        keep(i) = any(match & (runIdMatch | isnan(data.RunId)));
+    elseif hasRunIdKey
+        keep(i) = any(match & runIdMatch);
+    else
+        keep(i) = hasAnalyticalKey && any(match);
+    end
+end
+runInfo = runInfo(keep, :);
 end
 
 function runInfo = mergeRunInfo(leftInfo, rightInfo)
-if isempty(leftInfo)
-    runInfo = rightInfo;
+leftInfo = normalizeRunInfoIdentityNames(leftInfo);
+rightInfo = normalizeRunInfoIdentityNames(rightInfo);
+leftNames = string(leftInfo.Properties.VariableNames);
+rightNames = string(rightInfo.Properties.VariableNames);
+names = [leftNames, rightNames(~ismember(rightNames, leftNames))];
+if isempty(names)
+    runInfo = table();
     return
 end
 
-if isempty(rightInfo)
-    runInfo = leftInfo;
-    return
+leftAligned = table();
+rightAligned = table();
+for name = names
+    hasLeft = ismember(name, leftNames);
+    hasRight = ismember(name, rightNames);
+    if hasLeft && hasRight
+        [leftColumn, rightColumn] = harmonizeMetadataColumns( ...
+            leftInfo.(name), rightInfo.(name), name);
+    elseif hasLeft
+        leftColumn = normalizeMetadataColumn(leftInfo.(name), name);
+        rightColumn = missingMetadataColumn(leftColumn, height(rightInfo), name);
+    else
+        rightColumn = normalizeMetadataColumn(rightInfo.(name), name);
+        leftColumn = missingMetadataColumn(rightColumn, height(leftInfo), name);
+    end
+    leftAligned.(name) = leftColumn;
+    rightAligned.(name) = rightColumn;
 end
 
-if ~isequal(leftInfo.Properties.VariableNames, rightInfo.Properties.VariableNames)
+rows = [leftAligned; rightAligned];
+identityNames = lower(string(rows.Properties.VariableNames));
+keyNames = intersect(["run_id", "model", "scenario", "version"], ...
+    identityNames, 'stable');
+runInfo = rows;
+outputCount = 0;
+for i = 1 : height(rows)
+    match = findRunInfoMatch(runInfo(1:outputCount,:), rows(i,:), keyNames);
+    if isempty(match)
+        outputCount = outputCount + 1;
+        runInfo(outputCount,:) = rows(i,:);
+    else
+        runInfo(match,:) = mergeRunInfoRow(runInfo(match,:), rows(i,:), keyNames);
+    end
+end
+runInfo = runInfo(1:outputCount, :);
+end
+
+function runInfo = normalizeRunInfoIdentityNames(runInfo)
+names = string(runInfo.Properties.VariableNames);
+identityColumns = ismember(lower(names), ["run_id","model","scenario","version"]);
+names(identityColumns) = lower(names(identityColumns));
+if numel(unique(names)) ~= numel(names)
     error('iam:IAMFrame:IncompatibleRunInfo', ...
-        'Cannot append frames with incompatible RunInfo schemas.')
+        'RunInfo contains duplicate case-insensitive identity columns.')
+end
+runInfo.Properties.VariableNames = cellstr(names);
 end
 
-runInfo = [leftInfo; rightInfo];
-if ismember('run_id', runInfo.Properties.VariableNames)
-    [~, ia] = unique(runInfo.run_id, 'stable');
-    runInfo = runInfo(ia, :);
-else
-    [~, ia] = unique(runInfo, 'rows', 'stable');
-    runInfo = runInfo(ia, :);
+function validateRunInfoMapping(runInfo, data)
+if isempty(runInfo) || isempty(data)
+    return
 end
+
+runInfoNames = lower(string(runInfo.Properties.VariableNames));
+runIdIndex = find(runInfoNames == "run_id", 1);
+if isempty(runIdIndex)
+    return
+end
+runIdName = runInfo.Properties.VariableNames{runIdIndex};
+runIds = unique(runInfo.(runIdName));
+runIds = runIds(~isnan(runIds));
+identityNames = ["model", "scenario", "version"];
+dataNames = ["Model", "Scenario", "Version"];
+available = ismember(identityNames, runInfoNames);
+
+for runId = runIds(:)'
+    dataRows = data(~isnan(data.RunId) & data.RunId == runId, :);
+    if isempty(dataRows)
+        continue
+    end
+    trajectories = unique(identityComparisonTable( ...
+        dataRows(:, {'Model', 'Scenario', 'Version'})), 'rows', 'stable');
+    infoRows = runInfo(runInfo.(runIdName) == runId, :);
+    for i = 1 : height(infoRows)
+        matchesTrajectory = true(height(trajectories), 1);
+        hasIdentity = false;
+        for j = find(available)
+            name = runInfo.Properties.VariableNames{find( ...
+                runInfoNames == identityNames(j), 1)};
+            value = infoRows.(name)(i);
+            if isMissingMetadataValue(value)
+                continue
+            end
+            hasIdentity = true;
+            matchesTrajectory = matchesTrajectory & ...
+                matchMetadataIdentity(trajectories.(dataNames(j)), value);
+        end
+        matchCount = nnz(matchesTrajectory);
+        if matchCount == 0
+            error('iam:IAMFrame:RunInfoIdentityMismatch', ...
+                'RunInfo identity does not match data for RunId %.15g.', runId)
+        elseif matchCount > 1 && hasIdentity
+            error('iam:IAMFrame:AmbiguousRunInfo', ...
+                ['RunInfo for RunId %.15g does not identify one model, ' ...
+                 'scenario, and version.'], runId)
+        elseif matchCount > 1
+            error('iam:IAMFrame:AmbiguousRunInfo', ...
+                ['RunInfo for RunId %.15g has no analytical identity and ' ...
+                 'matches multiple scenarios.'], runId)
+        end
+    end
+end
+end
+
+function [data, provenance] = mergeObservations(data, repeatPolicy)
+provenance = table();
+if isempty(data)
+    return
+end
+
+keys = identityComparisonTable(data(:, observationIdentityVariables()));
+[uniqueKeys, ~, group] = unique(keys, 'rows', 'stable');
+counts = accumarray(group, 1, [height(uniqueKeys), 1]);
+duplicateGroups = find(counts > 1);
+if isempty(duplicateGroups)
+    return
+end
+
+keep = true(height(data), 1);
+provenanceMask = false(height(data), 1);
+originalRunIds = data.RunId;
+for groupId = duplicateGroups'
+    rows = find(group == groupId);
+    observation = observationDescription(data(rows(1), :));
+    values = data.Value(rows);
+    if any(~arrayfun(@(value) isequaln(value, values(1)), values))
+        error('iam:IAMFrame:ConflictingObservation', ...
+            "Repeated observation has changed values: " + observation)
+    end
+    if repeatPolicy == "error"
+        error('iam:IAMFrame:DuplicateObservation', ...
+            "Repeated observation: " + observation + ...
+            '. Set RepeatPolicy="deduplicate" to collapse identical values.')
+    end
+
+    sourceIds = data.RunId(rows);
+    sourceIds = sourceIds(~isnan(sourceIds));
+    if isempty(sourceIds)
+        data.RunId(rows(1)) = NaN;
+    elseif all(sourceIds == sourceIds(1))
+        data.RunId(rows(1)) = sourceIds(1);
+    else
+        provenanceMask(rows(~isnan(originalRunIds(rows)))) = true;
+        data.RunId(rows(1)) = NaN;
+    end
+    keep(rows(2:end)) = false;
+end
+if any(provenanceMask)
+    provenance = data(provenanceMask, {'Model','Scenario','Version','RunId'});
+    provenance.RunId = originalRunIds(provenanceMask);
+    provenance.Properties.VariableNames = {'model','scenario','version','run_id'};
+    [~, first] = unique(identityComparisonTable(provenance), 'rows', 'stable');
+    provenance = provenance(first,:);
+end
+data = data(keep, :);
+end
+
+function [left, right] = harmonizeMetadataColumns(left, right, name)
+left = normalizeMetadataColumn(left, name);
+right = normalizeMetadataColumn(right, name);
+if ~strcmp(class(left), class(right))
+    error('iam:IAMFrame:IncompatibleRunInfo', ...
+        "RunInfo column '" + name + "' has incompatible types " + ...
+        class(left) + " and " + class(right) + ".")
+end
+if isdatetime(left) && ~strcmp(left.TimeZone, right.TimeZone)
+    if isempty(left.TimeZone) && all(isnat(left))
+        left.TimeZone = right.TimeZone;
+    elseif isempty(right.TimeZone) && all(isnat(right))
+        right.TimeZone = left.TimeZone;
+    elseif isempty(left.TimeZone) || isempty(right.TimeZone)
+        error('iam:IAMFrame:IncompatibleRunInfo', ...
+            "RunInfo column '" + name + "' mixes zoned and unzoned timestamps.")
+    end
+    right.TimeZone = left.TimeZone;
+end
+end
+
+function values = normalizeMetadataColumn(values, name)
+if ~ischar(values) && (~ismatrix(values) || ...
+        (size(values,2) ~= 1 && ~isequal(size(values), [0 0])))
+    error('iam:IAMFrame:IncompatibleRunInfo', ...
+        "RunInfo column '" + name + "' must contain one value per row; array columns are unsupported.")
+end
+if ischar(values)
+    if size(values,1) == 0
+        values = strings(0,1);
+    else
+        values = string(values);
+    end
+elseif iscategorical(values) || (iscellstr(values) && ~isempty(values))
+    values = string(values);
+elseif isstring(values)
+    values = values(:);
+elseif isnumeric(values) || islogical(values)
+    values = double(values(:));
+elseif isstruct(values)
+    values = num2cell(values(:));
+elseif isdatetime(values) || isduration(values) || iscell(values)
+    values = values(:);
+else
+    error('iam:IAMFrame:IncompatibleRunInfo', ...
+        "RunInfo column '" + name + "' has unsupported type " + class(values) + ".")
+end
+end
+
+function values = missingMetadataColumn(template, count, name)
+if isstring(template)
+    values = repmat(string(missing), count, 1);
+elseif isnumeric(template)
+    values = NaN(count, 1);
+elseif isdatetime(template)
+    values = NaT(count, 1, 'TimeZone', template.TimeZone);
+elseif isduration(template)
+    values = seconds(NaN(count, 1));
+elseif iscell(template)
+    values = cell(count, 1);
+else
+    error('iam:IAMFrame:IncompatibleRunInfo', ...
+        "RunInfo column '" + name + "' cannot represent missing values.")
+end
+end
+
+function match = findRunInfoMatch(existing, candidate, keyNames)
+match = [];
+if isempty(existing)
+    return
+end
+
+if isempty(keyNames)
+    for i = 1 : height(existing)
+        if metadataRowsEqual(existing(i,:), candidate)
+            match = i;
+            return
+        end
+    end
+    return
+end
+
+for i = 1 : height(existing)
+    sharedRunId = false;
+    sameIdentity = true;
+    sharedModel = false;
+    sharedScenario = false;
+    for name = keyNames
+        columnName = existing.Properties.VariableNames{find( ...
+            lower(string(existing.Properties.VariableNames)) == name, 1)};
+        leftValue = existing.(columnName)(i);
+        rightValue = candidate.(columnName);
+        if isMissingMetadataValue(leftValue) || isMissingMetadataValue(rightValue)
+            continue
+        end
+        if ~isequaln(leftValue, rightValue)
+            sameIdentity = false;
+            break
+        end
+        sharedRunId = sharedRunId || name == "run_id";
+        sharedModel = sharedModel || name == "model";
+        sharedScenario = sharedScenario || name == "scenario";
+    end
+    analyticalKeys = keyNames(keyNames ~= "run_id");
+    if sameIdentity && (sharedRunId || (sharedModel && sharedScenario && ...
+            metadataRowsEqual(existing(i,:), candidate, analyticalKeys)))
+        if ~isempty(match)
+            error('iam:IAMFrame:AmbiguousRunInfo', ...
+                'A partial RunInfo identity matches multiple source records.')
+        end
+        match = i;
+    end
+end
+end
+
+function merged = mergeRunInfoRow(existing, candidate, keyNames)
+merged = existing;
+allNames = string(existing.Properties.VariableNames);
+identity = metadataIdentityDescription(existing, keyNames);
+for name = allNames
+    merged.(name) = mergeMetadataValues(existing.(name), candidate.(name), ...
+        "RunInfo for " + identity + ", column '" + name + "'");
+end
+end
+
+function value = mergeMetadataValues(left, right, description)
+value = left;
+if isMissingMetadataValue(left)
+    value = right;
+elseif isMissingMetadataValue(right)
+    return
+elseif iscell(left) && iscell(right) && isscalar(left) && isscalar(right)
+    value = {mergeMetadataValues(left{1}, right{1}, description)};
+elseif isstruct(left) && isstruct(right) && isscalar(left) && isscalar(right)
+    for name = string(fieldnames(right))'
+        if isfield(left, name)
+            value.(name) = mergeMetadataValues(left.(name), right.(name), ...
+                description + "." + name);
+        else
+            value.(name) = right.(name);
+        end
+    end
+elseif ~isequaln(left, right)
+    if (ischar(left) || isstring(left) || iscategorical(left)) && ...
+            (ischar(right) || isstring(right) || iscategorical(right)) && ...
+            isequaln(string(left), string(right))
+        return
+    end
+    error('iam:IAMFrame:IncompatibleRunInfo', ...
+        "Conflicting metadata in " + description + ".")
+end
+end
+
+function tf = metadataRowsEqual(left, right, names)
+if nargin < 3
+    names = string(left.Properties.VariableNames);
+end
+tf = true;
+for name = names
+    if ~isequaln(left.(name), right.(name))
+        tf = false;
+        return
+    end
+end
+end
+
+function tf = isMissingMetadataValue(value)
+if isempty(value)
+    tf = true;
+elseif iscell(value)
+    tf = isscalar(value) && isMissingMetadataValue(value{1});
+elseif isstruct(value)
+    tf = isempty(value) || (isscalar(value) && isempty(fieldnames(value)));
+elseif isnumeric(value)
+    tf = isscalar(value) && isnan(value);
+elseif isstring(value)
+    tf = isscalar(value) && ismissing(value);
+elseif isdatetime(value)
+    tf = isscalar(value) && isnat(value);
+elseif isduration(value)
+    tf = isscalar(value) && isnan(seconds(value));
+elseif iscategorical(value)
+    tf = isscalar(value) && isundefined(value);
+else
+    tf = isempty(value);
+end
+end
+
+function tf = matchMetadataIdentity(dataValues, runInfoValue)
+if iscell(dataValues)
+    dataValues = string(dataValues);
+end
+if isstring(dataValues) || ischar(dataValues) || iscategorical(dataValues)
+    tf = matches(string(dataValues), string(runInfoValue));
+elseif isnumeric(dataValues) || islogical(dataValues)
+    value = double(runInfoValue);
+    values = double(dataValues);
+    tf = values == value | (isnan(values) & isnan(value));
+else
+    tf = arrayfun(@(value) isequaln(value, runInfoValue), dataValues);
+end
+end
+
+function description = observationDescription(row)
+description = "Model=" + row.Model + ", Scenario=" + row.Scenario + ...
+    ", Version=" + string(row.Version) + ", Variable=" + row.Variable + ...
+    ", Region=" + row.Region + ", Unit=" + row.Unit + ...
+    ", Year=" + string(row.Year);
+end
+
+function description = metadataIdentityDescription(row, keyNames)
+parts = strings(numel(keyNames), 1);
+for i = 1 : numel(keyNames)
+    name = keyNames(i);
+    columnName = row.Properties.VariableNames{find( ...
+        lower(string(row.Properties.VariableNames)) == name, 1)};
+    value = string(row.(columnName));
+    value(ismissing(value)) = "missing";
+    parts(i) = name + "=" + value;
+end
+description = strjoin(parts, ", ");
 end
 
 function validateUniqueObservations(data)
