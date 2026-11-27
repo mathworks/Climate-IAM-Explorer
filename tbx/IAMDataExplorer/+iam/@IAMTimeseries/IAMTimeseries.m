@@ -30,6 +30,7 @@ classdef IAMTimeseries
 %   lst = getRunList(obj)  - Return a table listing model/run metadata
 %   uniqueRegions(obj), uniqueVariables(obj), uniqueModels(obj),
 %   uniqueScenarios(obj)  - Return unique values for those fields
+%   labels = legendLabels(obj) - Compact labels for varying series fields
 %
 % Arithmetic
 %   r = plus(obj1,obj2)    - Add series with matching identities
@@ -264,6 +265,16 @@ classdef IAMTimeseries
             value = unique([obj.Region]);
         end
 
+        function labels = legendLabels(obj)
+            %legendLabels - Return the compact labels used by plot and bar
+            %   LABELS = legendLabels(OBJ) includes only varying identity fields.
+            if isempty(obj)
+                labels = strings(1,0);
+            else
+                labels = igetLegend(obj);
+            end
+        end
+
         function value = uniqueVariables(obj)
             value = unique([obj.Variable]);
         end
@@ -414,7 +425,7 @@ end
 
 if length(unique(data)) ~= 1
     if isscalar(str)
-        str = str + arrayfun(@(x) string(sprintf('%s = %s',var(1),x)) , data);
+        str = str + arrayfun(@(x) string(sprintf(format,var(1),x)) , data);
     else
         str = str + arrayfun(@(x) string(sprintf(", " + format,var(1),x)) , data);
     end

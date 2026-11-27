@@ -18,7 +18,7 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
         ExportSelectedButton            matlab.ui.control.Button
         LoadWorkspaceButton             matlab.ui.control.Button
         
-        WbAxes        iam.views.IAMChart
+        WbAxes        iam.views.IAMHTMLChart
     end
     
     properties (Dependent, SetAccess = private)
@@ -329,14 +329,10 @@ classdef IAMworkbook < matlab.mixin.SetGetExactNames
             obj.GridLayout.Layout.Column = 1;  
             
             
-            % Set Figure 
-            obj.WbAxes = iam.views.IAMChart('Parent',obj.MainGridLayout);
-            obj.WbAxes.GridLayout.BackgroundColor = [0.23,0.29,0.22];
-            obj.WbAxes.UIAxes.XColor = 'w';
-            obj.WbAxes.UIAxes.YColor = 'w';
-            obj.WbAxes.UIAxes.GridColor = 'k';
-            obj.WbAxes.CheckBox.FontColor = 'w';
-            obj.WbAxes.Label.FontColor = 'w';
+            % Shared HTML chart
+            obj.WbAxes = iam.views.IAMHTMLChart(Parent=obj.MainGridLayout);
+            obj.WbAxes.GridLayout.Layout.Row = 1;
+            obj.WbAxes.GridLayout.Layout.Column = 2;
 
             % Create GridLayout2
             g2 = uigridlayout(obj.MainGridLayout, [5 4]);

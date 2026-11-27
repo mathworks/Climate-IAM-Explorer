@@ -223,6 +223,26 @@ classdef tIAMTimeseries < matlab.unittest.TestCase
             right = iam.IAMTimeseries(input);
             tc.verifyError(@() left + right,"iam:IAMTimeseries:IncompatibleUnits")
         end
+
+        function testLegendRunIdsUseNumericText(tc)
+            left = testSeries("Shared scenario","Energy",101,[1;2]);
+            right = testSeries("Shared scenario","Energy",202,[3;4]);
+            series = [left,right];
+
+            tc.verifyEqual(series.legendLabels(), ["I = 101","I = 202"])
+        end
+
+        function testLegendFallbackForSingleSeries(tc)
+            series = testSeries("Shared scenario","Energy",101,[1;2]);
+
+            tc.verifyEqual(series.legendLabels(), "Region = World")
+        end
+
+        function testLegendLabelsEmptyArray(tc)
+            series = iam.IAMTimeseries.empty();
+
+            tc.verifyEmpty(series.legendLabels())
+        end
     end
 end
 

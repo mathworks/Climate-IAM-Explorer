@@ -117,7 +117,22 @@ classdef IAMEnvironment < matlab.mixin.SetGet
             runInfo = obj.RunList(ismember(obj.RunList.run_id, frame.RunIds), :);
             runInfo = projectRunMetadata(runInfo, obj.Metadata, opts.meta);
 
-            frame = iam.IAMFrame(frame.toTable(), ...
+            data = frame.toTable();
+            % Restore Unicode labels damaged by legacy bulk endpoints using
+            % their catalogue run IDs. Other identity mismatches still fail.
+            for i = 1:height(runInfo)
+                for coordinate = ["Model", "Scenario"]
+                    name = lower(coordinate);
+                    canonical = runInfo.(name)(i);
+                    damaged = regexprep(canonical, "[^\x00-\x7F]", "?");
+                    if ~ismissing(canonical) && canonical ~= damaged
+                        rows = data.RunId == runInfo.run_id(i) & ...
+                            data.(coordinate) == damaged;
+                        data.(coordinate)(rows) = canonical;
+                    end
+                end
+            end
+            frame = iam.IAMFrame(data, ...
                 'RunInfo', runInfo);
         end
         

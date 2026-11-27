@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IAM Data Explorer</title>
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/search.css?v=14">
+  <script defer src="js/search.js?v=13"></script>
+</head>
+<body>
+  <main class="search-app">
+    <section class="criteria-card card" aria-labelledby="criteria-title">
+      <div class="criteria-heading">
+        <div>
+          <h1 id="criteria-title">Search criteria</h1>
+          <p class="criteria-description">Exact match by default · Uncheck for partial matches · Alternatives: <code>;;</code>.</p>
+        </div>
+      </div>
+
+      <div class="criteria-grid">
+        <section class="criterion" data-facet="model">
+          <div class="criterion-heading">
+            <label for="model-input">Model</label>
+            <button class="browse-button" type="button" data-browse="model">Browse values <span aria-hidden="true">⌄</span></button>
+          </div>
+          <input id="model-input" type="text" autocomplete="off" placeholder="e.g. MESSAGE;; REMIND">
+          <label class="strict-toggle"><input id="model-strict" type="checkbox" checked><span class="toggle-box"></span><span>Exact match</span></label>
+        </section>
+
+        <section class="criterion" data-facet="region">
+          <div class="criterion-heading">
+            <label for="region-input">Region</label>
+            <button class="browse-button" type="button" data-browse="region">Browse values <span aria-hidden="true">⌄</span></button>
+          </div>
+          <input id="region-input" type="text" autocomplete="off" placeholder="e.g. World;; OECD;; Asia">
+          <label class="strict-toggle"><input id="region-strict" type="checkbox" checked><span class="toggle-box"></span><span>Exact match</span></label>
+        </section>
+
+        <section class="criterion" data-facet="scenario">
+          <div class="criterion-heading">
+            <label for="scenario-input">Scenario</label>
+            <button class="browse-button" type="button" data-browse="scenario">Browse values <span aria-hidden="true">⌄</span></button>
+          </div>
+          <input id="scenario-input" type="text" autocomplete="off" placeholder="e.g. Below 2;; Net Zero">
+          <label class="strict-toggle"><input id="scenario-strict" type="checkbox" checked><span class="toggle-box"></span><span>Exact match</span></label>
+        </section>
+
+        <section class="criterion" data-facet="variable">
+          <div class="criterion-heading">
+            <label for="variable-input">Variable</label>
+            <button class="browse-button" type="button" data-browse="variable">Browse tree <span aria-hidden="true">⌄</span></button>
+          </div>
+          <input id="variable-input" type="text" autocomplete="off" placeholder="e.g. Emissions;; CO2">
+          <label class="strict-toggle"><input id="variable-strict" type="checkbox" checked><span class="toggle-box"></span><span>Exact match</span></label>
+        </section>
+      </div>
+
+      <div class="criteria-footer">
+        <button class="text-button" id="clear-criteria" type="button">Clear criteria</button>
+        <div class="criteria-feedback" id="criteria-feedback" aria-live="polite">No search has been run</div>
+        <button class="button button-primary search-button" id="search-button" type="button">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="m13 13 4 4"></path></svg>
+          <span>Search database</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="results-panel card" aria-labelledby="results-title">
+      <div class="results-heading">
+        <div>
+          <h2 id="results-title">Matching runs <span class="count-pill" id="result-count">—</span></h2>
+        </div>
+      </div>
+
+      <div class="table-scroll" id="table-scroll">
+        <div class="initial-state" id="initial-state">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 42 42"><path d="M8 10h26M8 18h18M8 26h22M8 34h12"></path><circle cx="31" cy="29" r="6"></circle><path d="m35.5 33.5 4 4"></path></svg>
+          </div>
+          <strong>Your results will appear here</strong>
+          <span>Choose any combination of criteria, then press Search database.</span>
+        </div>
+        <div class="no-results" id="no-results" hidden>
+          <strong>No matching runs</strong>
+          <span>Try a shorter keyword, another field, or turn off Exact match.</span>
+        </div>
+        <table class="results-table" id="results-table" aria-label="Matching runs. Click a row to select it; Shift-click to select a range." hidden>
+          <thead>
+            <tr>
+              <th>VARIABLE</th><th>UNITS</th><th>MODEL</th><th>SCENARIO</th><th>REGION</th><th>RUN ID</th><th>VERSION</th>
+            </tr>
+          </thead>
+          <tbody id="result-rows"></tbody>
+        </table>
+      </div>
+
+      <footer class="results-footer">
+        <div class="selection-status" id="selection-status" aria-live="polite">Select rows to preview them</div>
+        <div class="result-actions">
+          <button class="button button-primary" id="selected-to-workbook" type="button" disabled>Selected to Workbook</button>
+          <button class="button button-primary" id="all-to-workbook" type="button" disabled>All to Workbook</button>
+          <button class="button button-primary" id="export-to-workspace" type="button" disabled title="Export all results to workspace">Export</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="browse-modal" hidden>
+    <section class="browse-dialog" role="dialog" aria-modal="true" aria-labelledby="browse-title">
+      <header class="browse-heading">
+        <div><p class="eyebrow">BROWSE METADATA</p><h2 id="browse-title">Choose values</h2></div>
+        <button class="close-button" id="close-browse" type="button" aria-label="Close">×</button>
+      </header>
+      <label class="browse-search-label" for="browse-search">Filter these values</label>
+      <input class="browse-search" id="browse-search" type="search" placeholder="Type to narrow the list">
+      <div class="browse-options" id="browse-options"><div class="browse-loading">Loading values…</div></div>
+      <footer class="browse-footer">
+        <span class="browse-selection-count" id="browse-selection-count">No values selected</span>
+      </footer>
+    </section>
+  </div>
+</body>
+</html>

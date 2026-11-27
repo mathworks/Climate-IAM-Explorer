@@ -16,3 +16,4 @@ test = [
 
 [dependencies]
 MATLABDocMaker = {version = ">=0.8.0", id = "ae82d5d2-45be-4fc5-a01b-70d8bb905ca2"}
+layout2 = {version = ">=2.4.2", id = "e5af5a78-4a80-11e4-9553-005056977bd0"}

@@ -1,0 +1,37 @@
+name: Release MATLAB Toolbox
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up display for MATLAB tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          Xvfb :99 &
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
+
+      - name: Set up MATLAB
+        uses: matlab-actions/setup-matlab@v3
+
+      - name: Build toolbox
+        uses: matlab-actions/run-build@v3
+
+      - name: Create GitHub release and upload toolbox
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: IAMDataExplorer.mltbx
+          fail_on_unmatched_files: true

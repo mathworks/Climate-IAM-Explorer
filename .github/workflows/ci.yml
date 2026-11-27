@@ -25,7 +25,7 @@ jobs:
         platform: [ ubuntu-latest ]
   
         # List of MATLAB releases over which to run the tests.        
-        matlab-version: [ R2024a, R2026a ]
+        matlab-version: [ R2024a, R2026b ]
 
     # The type of runner that the job will run on
     runs-on: ${{ matrix.platform }}
@@ -47,17 +47,15 @@ jobs:
       # Sets up MATLAB on the GitHub Actions runner
       - name: Setup MATLAB
         uses: matlab-actions/setup-matlab@v3
+        with:
+          release: ${{ matrix.matlab-version }}
 
       # Runs buildtool, code issues + tests + toolboxPackaging
       - name: Run build
         uses: matlab-actions/run-build@v3
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
         with:
-          name: IAMDataExplorer
-          path: IAMDataExplorer.mltbx
-          if-no-files-found: ignore
+          tasks: check test
+
 
       # Set up pages to show reports. This needs to run independent of the previous results.
       # Previous here is buildtool, since upload is canceled on failure
@@ -71,7 +69,7 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           # upload entire directory
-          path: tests/reports
+          path: public
     
   deploy-results:
     runs-on: ubuntu-latest
@@ -96,5 +94,5 @@ jobs:
       # Publish the report address to GitHub Pages
       - name: Create Annotation with links
         run: |
-          echo '<a href="${{ steps.deployment.outputs.page_url }}test-results/report.html" target="_blank">Test results report</a>' >> $GITHUB_STEP_SUMMARY
-          echo '<a href="${{ steps.deployment.outputs.page_url }}code-coverage/report.html" target="_blank">Code coverage report</a>' >> $GITHUB_STEP_SUMMARY
+          echo '<a href="${{ steps.deployment.outputs.page_url }}results.html" target="_blank">Test results report</a>' >> $GITHUB_STEP_SUMMARY
+          echo '<a href="${{ steps.deployment.outputs.page_url }}coverage.html" target="_blank">Code coverage report</a>' >> $GITHUB_STEP_SUMMARY

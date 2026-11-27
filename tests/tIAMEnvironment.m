@@ -166,6 +166,27 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyFalse(ismember('PolicyStatus', frame.RunInfo.Properties.VariableNames))
         end
 
+        function testGetFrameRestoresDamagedUnicodeScenario(tc)
+            conn = buildMockConnection();
+            conn.Runs.scenario(1) = "Below 2°C";
+            conn.BulkDataResponse = buildMockTimeseries("Primary Energy", "Below 2?C");
+            env = iam.IAMEnvironment(conn);
+
+            frame = env.getFrame(models="Model A", strict=true);
+
+            tc.verifyEqual(frame.Scenarios, "Below 2°C")
+            tc.verifyEqual(frame.RunInfo.scenario, "Below 2°C")
+        end
+
+        function testGetFrameRejectsWrongScenarioIdentity(tc)
+            conn = buildMockConnection();
+            conn.BulkDataResponse = buildMockTimeseries("Primary Energy", "Different scenario");
+            env = iam.IAMEnvironment(conn);
+
+            tc.verifyError(@() env.getFrame(models="Model A", strict=true), ...
+                "iam:IAMFrame:RunInfoIdentityMismatch")
+        end
+
         function testIndexReturnsRunIdentity(tc)
             conn = buildMockConnection();
             env = iam.IAMEnvironment(conn);
@@ -302,9 +323,12 @@ conn = MockIAMConnection( ...
     'MetadataCategories', metadataCategories);
 end
 
-function ts = buildMockTimeseries(variableName)
-if nargin == 0
+function ts = buildMockTimeseries(variableName, scenarioName)
+if nargin < 1
     variableName = "Primary Energy";
+end
+if nargin < 2
+    scenarioName = "Scenario A";
 end
 years = [2020; 2030];
 values = [1; 2];
@@ -313,7 +337,7 @@ tt = timetable(datetime(years, 1, 1, 'Format', 'yyyy'), values, ...
 
 ts = iam.IAMTimeseries(struct( ...
     'model', "Model A", ...
-    'scenario', "Scenario A", ...
+    'scenario', scenarioName, ...
     'variable', variableName, ...
     'region', "World", ...
     'unit', "EJ/yr", ...

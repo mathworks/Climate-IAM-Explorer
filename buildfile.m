@@ -53,7 +53,7 @@ opts.ToolboxGettingStartedGuide = fullfile("tbx", "doc", "mfiles", "GettingStart
 opts.ToolboxName = "Climate IAM Explorer";
 opts.PackageName = "ClimateIAMExplorer";
 opts.ToolboxVersion = v.Version;
-opts.OutputFile = fullfile("releases", "IAMDataExplorer.mltbx");
+opts.OutputFile = "IAMDataExplorer.mltbx";
 
 matlab.addons.toolbox.packageToolbox(opts)
 
