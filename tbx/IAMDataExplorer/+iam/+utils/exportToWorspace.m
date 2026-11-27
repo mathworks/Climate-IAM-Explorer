@@ -11,7 +11,7 @@ if isdeployed()
     exported = true;
 else
     variableName = inputdlg("Please select a name","Export to Workspace", ...
-        [1 60],{""},struct("Resize","on"));
+        [1 30],{""},struct("Resize","on"));
     if isempty(variableName)
         return
     end
