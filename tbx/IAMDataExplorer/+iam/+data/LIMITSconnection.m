@@ -31,33 +31,31 @@ classdef LIMITSconnection < iam.data.Connection
     methods
         
         function obj = LIMITSconnection(excelFile)
-            
-            if isfile(excelFile)
-                obj.File = iam.utils.GetFullPath(excelFile);
-                
-%                 obj.ImportOptions = delimitedTextImportOptions("NumVariables", 20);
-                
-                opts = detectImportOptions(obj.File, 'TextType', 'string', 'ReadVariableNames', true, 'Range', 'A:E');
-                
-                rl = readtable(excelFile, opts);
-                runId = ones(height(rl), 1);
-                count = 1;
-                model = rl.MODEL;
-                scenario = rl.SCENARIO;
-                for i = 2 : height(rl)
-                    if ~(model(i) == model(i-1) && scenario(i) == scenario(i-1))
-                        count = count + 1;
-                    end
-                    runId(i) = count;
-                end
-                rl.run_id = runId;
-                obj.TimeseriesList = rl;
-                obj.TimeseriesList.Properties.VariableNames = {'model','scenario','region','variable','unit','run_id'};
-                % I probably want a caching option here.
-            else
-                error('iam:data:LIMITSconnection:ExcelDoesNotExist', ...
-                    'Unable to find a valid Excel file')
+
+            arguments
+                excelFile (1,1) string {mustBeFile}
             end
+
+            d = dir(excelFile);
+            excelFile = fullfile(d.folder, d.name);
+            obj.File = excelFile;
+
+            opts = detectImportOptions(obj.File, 'TextType', 'string', 'ReadVariableNames', true, 'Range', 'A:E');
+
+            rl = readtable(excelFile, opts);
+            runId = ones(height(rl), 1);
+            count = 1;
+            model = rl.MODEL;
+            scenario = rl.SCENARIO;
+            for i = 2 : height(rl)
+                if ~(model(i) == model(i-1) && scenario(i) == scenario(i-1))
+                    count = count + 1;
+                end
+                runId(i) = count;
+            end
+            rl.run_id = runId;
+            obj.TimeseriesList = rl;
+            obj.TimeseriesList.Properties.VariableNames = {'model','scenario','region','variable','unit','run_id'};
             
         end
         
