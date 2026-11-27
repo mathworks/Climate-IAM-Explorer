@@ -46,23 +46,27 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             env = iam.IAMEnvironment(conn);
 
             normalized = struct(PolicyStatus="Implemented", TemperatureTarget=1.5);
-            original = struct("Temperature Target", 1.5, "Policy Status", "Implemented");
+            reversed = struct(TemperatureTarget=1.5, PolicyStatus="Implemented");
 
             tc.verifyEqual(env.filterRuns(metadata=normalized, strict=true), 1001)
-            tc.verifyEqual(env.filterRuns(metadata=original, strict=true), 1001)
+            tc.verifyEqual(env.filterRuns(metadata=reversed, strict=true), 1001)
         end
 
-        function testMetadataNormalizationSupportsMixedAliases(tc)
+        function testMetadataNormalizationSupportsMixedCaseNames(tc)
             conn = buildMockConnection();
             conn.Runs.metadata = { ...
-                struct("policy status", "Implemented", "TEMPERATURE TARGET", 1.5); ...
+                struct("policystatus", "Implemented", "TEMPERATURETARGET", 1.5); ...
                 struct("POLICYSTATUS", "Planned")};
 
             env = iam.IAMEnvironment(conn);
+            projected = env.meta(fields=["Policy Status", "Temperature Target"]);
 
             tc.verifyEqual([env.RunList.metadata.PolicyStatus]', ["Implemented"; "Planned"])
             tc.verifyEqual(env.RunList.metadata(1).TemperatureTarget, 1.5)
             tc.verifyTrue(isnan(env.RunList.metadata(2).TemperatureTarget))
+            tc.verifyEqual(projected.PolicyStatus, ["Implemented"; "Planned"])
+            tc.verifyEqual(projected.TemperatureTarget(1), 1.5)
+            tc.verifyTrue(isnan(projected.TemperatureTarget(2)))
         end
 
         function testMetadataNormalizationRejectsUnknownField(tc)
@@ -280,12 +284,12 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             runIds = env.filterRuns(args{:});
             identities = env.index(args{:});
             metadata = env.meta(args{:}, run_id=true);
-            properties = env.runProperties(args{:});
+            runProperties = env.runProperties(args{:});
 
             tc.verifyEqual(runIds, 1001)
             tc.verifyEqual(identities.scenario, "Scenario A")
             tc.verifyEqual(metadata.run_id, runIds)
-            tc.verifyEqual(properties.run_id, runIds)
+            tc.verifyEqual(runProperties.run_id, runIds)
         end
 
         function testRunDiscoveryRejectsUnknownMetadata(tc)
