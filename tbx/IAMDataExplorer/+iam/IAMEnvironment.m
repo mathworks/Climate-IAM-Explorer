@@ -449,16 +449,21 @@ end
 
 function idx = matchStringValues(values, patterns, strict)
 values = string(values);
+missingValues = ismissing(values);
 values(ismissing(values)) = "";
 
 patterns = string(patterns);
+selectMissing = any(ismissing(patterns),"all");
 patterns = patterns(strlength(patterns) > 0);
 if isempty(patterns)
     idx = true(size(values));
+    if selectMissing
+        idx = missingValues;
+    end
     return
 end
 
-idx = false(size(values));
+idx = selectMissing & missingValues;
 for i = 1 : numel(patterns)
     idx = idx | matchSinglePattern(values, patterns(i), strict);
 end
@@ -500,12 +505,10 @@ end
 function value = metadataDefaultValue(type)
 type = lower(string(type));
 switch type
-    case "numeric value"
+    case {"numeric value", "boolean value"}
         value = NaN;
-    case "boolean value"
-        value = false;
     otherwise
-        value = "";
+        value = string(missing);
 end
 end
 
@@ -601,7 +604,7 @@ count = numel(metadataValues);
 defaultValue = metadata.(fieldName).DefaultValue;
 
 if isstring(defaultValue)
-    values = repmat("", count, 1);
+    values = repmat(defaultValue, count, 1);
 elseif islogical(defaultValue)
     values = repmat(defaultValue, count, 1);
 elseif isnumeric(defaultValue)

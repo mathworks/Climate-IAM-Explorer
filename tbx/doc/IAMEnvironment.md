@@ -98,6 +98,15 @@ Selector behavior:
 When `meta` is supplied, selected scenario metadata fields are flattened
 into `frame.RunInfo`.
 
+`RunInfo` retains provider metadata and provenance. Use
+`frame.filter(metadata=...)` to select downloaded metadata locally, or add
+analyst-owned annotations with `frame.setMeta`. Missing numeric and boolean
+provider indicators are represented by `NaN`; unknown is distinct from false.
+`frame.requireData` and `frame.validate` check coverage and bounds without a
+new request. See
+[`IAMFrame`](IAMFrame.md#local-scenario-metadata) for identity, missing-value,
+and field-name rules.
+
 ## Run-Level Discovery
 
 `IAMEnvironment` now provides a pyam-like run discovery surface.

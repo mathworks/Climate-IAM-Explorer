@@ -1,6 +1,8 @@
 classdef tIAMFrame < matlab.unittest.TestCase
 
     properties (TestParameter)
+        ExplicitFactor = struct('integer',int32(2),'single',single(2))
+        SourceIdName = struct('api',"run_id",'matlab',"RunId")
         InvalidYear = struct( ...
             'missing', NaN, ...
             'infinite', Inf, ...
@@ -572,6 +574,263 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyEqual(filtered.Years, 2030)
         end
 
+        function testConvertUnitUsesKnownAndExplicitFactors(tc)
+            frame = iam.IAMFrame(buildSampleTimeseries(1));
+
+            converted = frame.convertUnit("EJ/yr","PJ/yr");
+            explicit = converted.convertUnit("PJ/yr","custom energy",Factor=2);
+            twhSource = singleObservationFrame("Energy",303,1,table());
+            twhData = twhSource.toTable();
+            twhData.Unit = "TWh/yr";
+            twhFrame = iam.IAMFrame(twhData);
+            twh = twhFrame.convertUnit("TWh/yr","PJ/yr");
+
+            tc.verifyEqual(converted.toTable().Value,[1000;2000;3000],AbsTol=1e-12)
+            tc.verifyEqual(converted.Units,"PJ/yr")
+            tc.verifyEqual(explicit.toTable().Value,[2000;4000;6000],AbsTol=1e-12)
+            tc.verifyEqual(twh.toTable().Value,3.6,AbsTol=1e-12)
+            tc.verifyEqual(frame.toTable().Value,[1;2;3],AbsTol=1e-12)
+            tc.verifyError(@() frame.convertUnit("EJ/yr","unknown unit"), ...
+                "iam:IAMFrame:UnknownConversion")
+        end
+
+        function testExplicitFactorPreservesDoubleObservations(tc, ExplicitFactor)
+            frame = singleObservationFrame("Factor",7,1.234567890123,table());
+            converted = frame.convertUnit("EJ/yr","scaled",Factor=ExplicitFactor);
+            tc.verifyEqual(converted.toTable().Value,2.469135780246,AbsTol=1e-14)
+        end
+
+        function testDerivedResultPreservesSourcesWithoutRunInfo(tc)
+            data = calculationData();
+            data = data(1:2,:);
+            data.RunId = [7;8];
+            frame = iam.IAMFrame(data).setMeta(table("Model A","Scenario One",1,"Reviewed", ...
+                VariableNames=["Model","Scenario","Version","Review"]));
+            result = frame.share("A","B","Share");
+            tc.verifyTrue(isnan(result.RunIds))
+            tc.verifyEqual(sort(result.RunInfo.run_id),[7;8])
+            tc.verifyEqual(sort(result.Provenance.SourceRunId),[7;8])
+            tc.verifyEqual(result.meta().Review,"Reviewed")
+        end
+
+        function testDerivedResultEnrichesIdOnlySourceRecords(tc, SourceIdName)
+            data = calculationData();
+            data = data(1:2,:);
+            data.RunId = [7;8];
+            info = table([7;8],["A source";"B source"],VariableNames=[SourceIdName,"Source"]);
+            result = iam.IAMFrame(data,RunInfo=info).share("A","B","Share");
+            tc.verifyEqual(sort(result.RunInfo.run_id),[7;8])
+            tc.verifyEqual(result.RunInfo.scenario,repmat("Scenario One",2,1))
+            tc.verifyEqual(result.RunInfo.Source,["A source";"B source"])
+        end
+
+        function testBaselineResultKeepsOriginalParentScenarios(tc)
+            info = table(["Model A";"Model A"],["Policy";"Baseline"], ...
+                [1;1],[201;101],["Policy release";"Baseline release"], ...
+                VariableNames=["model","scenario","version","run_id","Source"]);
+            frame = iam.IAMFrame(baselineData(),RunInfo=info);
+            result = frame.compareBaseline("Policy","Baseline","Emissions","Difference");
+            selected = result.filter(years=2020,regions="World",strict=true);
+            unsupported = result.filter(years=2040,regions="World",strict=true);
+            tc.verifyEqual(sort(result.RunInfo.run_id),[101;201])
+            tc.verifyEqual(result.RunInfo.scenario,["Policy";"Baseline"])
+            tc.verifyTrue(all(isnan(result.RunIds)))
+            tc.verifyEqual(sort(selected.RunInfo.run_id),[101;201])
+            tc.verifyEqual(unique(selected.Provenance.SourceScenario),["Baseline";"Policy"])
+            tc.verifyEqual(unsupported.RunInfo.run_id,201)
+            tc.verifyEqual(unsupported.Provenance.SourceScenario,"Policy")
+        end
+
+        function testDerivedProvenanceSurvivesConversionAndRoundTrip(tc)
+            info = table(["Model A";"Model A"],["Policy";"Baseline"], ...
+                [1;1],[201;101],VariableNames=["model","scenario","version","run_id"]);
+            frame = iam.IAMFrame(baselineData(),RunInfo=info).setMeta(table( ...
+                "Model A","Policy",1,"Reviewed", ...
+                VariableNames=["Model","Scenario","Version","Review"]));
+            result = frame.compareBaseline("Policy","Baseline","Emissions","Difference");
+            converted = result.convertUnit("Mt CO2/yr","kt CO2/yr");
+            roundTrip = converted.toTimeseries().toFrame();
+            tc.verifyEqual(roundTrip.toTable(),converted.toTable())
+            tc.verifyEqual(roundTrip.RunInfo,converted.RunInfo)
+            tc.verifyEqual(roundTrip.meta(),converted.meta())
+            tc.verifyEqual(roundTrip.Provenance,converted.Provenance)
+            tc.verifyEqual(unique(converted.Provenance.Unit),"kt CO2/yr")
+            tc.verifyEqual(unique(converted.Provenance.SourceUnit),"Mt CO2/yr")
+        end
+
+        function testMissingTargetKeepsOnlyItsActualBaselineParent(tc)
+            data = baselineData();
+            extra = data(5,:);
+            extra.Year = 2050;
+            data = [data;extra];
+            info = table(["Model A";"Model A"],["Policy";"Baseline"], ...
+                [1;1],[201;101],VariableNames=["model","scenario","version","run_id"]);
+            result = iam.IAMFrame(data,RunInfo=info).compareBaseline( ...
+                "Policy","Baseline","Emissions","Difference");
+            selected = result.filter(years=2050,regions="World",strict=true);
+            tc.verifyEqual(selected.RunInfo.run_id,101)
+            tc.verifyEqual(selected.RunInfo.scenario,"Baseline")
+            tc.verifyEqual(selected.Provenance.SourceScenario,"Baseline")
+            tc.verifyTrue(isnan(selected.toTable().Value))
+            tc.verifyTrue(isnan(selected.RunIds))
+            tc.verifyEqual(selected.Units,"Mt CO2/yr")
+        end
+
+        function testChainedCalculationsRetainOriginalSources(tc)
+            data = calculationData();
+            data = data(1:2,:);
+            data.RunId = [7;8];
+            share = iam.IAMFrame(data).share("A","B","Share");
+            result = share.calculate("Share","add","Share","Double share",Unit="fraction");
+            tc.verifyEqual(result.toTable().Value,1,AbsTol=1e-12)
+            tc.verifyEqual(sort(result.RunInfo.run_id),[7;8])
+            tc.verifyEqual(unique(result.Provenance.SourceVariable),["A";"B"])
+            tc.verifyEqual(unique(result.Provenance.Variable),"Double share")
+        end
+
+        function testAppendingFilteredResultsRetainsProvenance(tc)
+            result = iam.IAMFrame(baselineData()).compareBaseline( ...
+                "Policy","Baseline","Emissions","Difference");
+            merged = result.filter(years=2020).append(result.filter(years=[2030 2040]));
+            tc.verifyEqual(merged.toTable(),result.toTable())
+            tc.verifyEqual(height(merged.Provenance),height(result.Provenance))
+            tc.verifyEqual(sort(merged.RunInfo.run_id),[101;201])
+        end
+
+        function testCalculateAlignsNamedOperandsByScenarioRegionAndYear(tc)
+            runInfo = table(["Model A";"Model A"], ...
+                ["Scenario One";"Scenario Two"],ones(2,1),[101;202], ...
+                ["Source One";"Source Two"], ...
+                VariableNames=["Model","Scenario","Version","RunId","Source"]);
+            frame = iam.IAMFrame(calculationData(),RunInfo=runInfo);
+            annotated = frame.setMeta(table(["Model A";"Model A"], ...
+                ["Scenario One";"Scenario Two"], [1;1], ["Reviewed";"New"], ...
+                VariableNames=["Model","Scenario","Version","Review"]));
+
+            [result,report] = annotated.calculate("A","subtract","B", ...
+                "A minus B",Unit="EJ/yr");
+            [reversed,~] = annotated.calculate("B","subtract","A", ...
+                "B minus A",Unit="EJ/yr");
+            [sumResult,~] = annotated.calculate("A","add","B", ...
+                "A plus B",Unit="EJ/yr");
+            [sumReversed,~] = annotated.calculate("B","add","A", ...
+                "B plus A",Unit="EJ/yr");
+            product = annotated.calculate("A","multiply","B", ...
+                "A times B",Unit="(EJ/yr)^2");
+            values = result.toTable();
+            reversedValues = reversed.toTable();
+            world = values.Scenario == "Scenario One" & values.Region == "World";
+            europe = values.Scenario == "Scenario One" & values.Region == "Europe";
+            missingRight = values.Scenario == "Scenario Two" & values.Region == "World";
+            missingLeft = values.Scenario == "Scenario Two" & values.Region == "Europe";
+
+            tc.verifyEqual(values.Value(world),-2,AbsTol=1e-12)
+            tc.verifyEqual(values.Value(europe),-3,AbsTol=1e-12)
+            tc.verifyTrue(isnan(values.Value(missingRight)))
+            tc.verifyTrue(isnan(values.Value(missingLeft)))
+            tc.verifyEqual(reversedValues.Value(world),2,AbsTol=1e-12)
+            tc.verifyEqual(sumResult.toTable().Value(world),6,AbsTol=1e-12)
+            tc.verifyEqual(sumReversed.toTable().Value(world),6,AbsTol=1e-12)
+            tc.verifyEqual(product.toTable().Value(world),8,AbsTol=1e-12)
+            tc.verifyEqual(report.ComputedCount,2)
+            tc.verifyEqual(height(report.MissingOperands),2)
+            tc.verifyEqual(height(result.meta()),2)
+            tc.verifyEqual(annotated.meta().Review,["Reviewed";"New"])
+            tc.verifyEqual(height(result.RunInfo),2)
+            tc.verifyEqual(result.toTable().RunId(world),101)
+            tc.verifyEqual(frame.Variables,["A";"B"])
+        end
+
+        function testCalculateReportsZeroDenominatorsAndChecksUnits(tc)
+            frame = iam.IAMFrame(calculationData());
+
+            [result,report] = frame.calculate("A","divide","B", ...
+                "A over B",Unit="fraction");
+            values = result.toTable();
+            zero = values.Scenario == "Scenario Two" & values.Region == "Europe";
+
+            tc.verifyTrue(isnan(values.Value(zero)))
+            tc.verifyEqual(height(report.ZeroDenominators),1)
+            tc.verifyError(@() frame.calculate("A","add","B","Total",Unit="PJ/yr"), ...
+                "iam:IAMFrame:IncompatibleUnits")
+            tc.verifyError(@() frame.calculate("A","divide","B","Ratio"), ...
+                "iam:IAMFrame:InvalidDerivedLabel")
+
+            incompatible = calculationData();
+            incompatible.Unit(incompatible.Variable == "B") = "PJ/yr";
+            incompatibleFrame = iam.IAMFrame(incompatible);
+            tc.verifyError(@() incompatibleFrame.calculate("A","add","B", ...
+                "Total",Unit="EJ/yr"),"iam:IAMFrame:IncompatibleUnits")
+            tc.verifyError(@() incompatibleFrame.share("A","B","Share"), ...
+                "iam:IAMFrame:IncompatibleUnits")
+
+            unknown = calculationData();
+            unknown.Unit(unknown.Variable == "A") = "";
+            unknownFrame = iam.IAMFrame(unknown);
+            tc.verifyError(@() unknownFrame.calculate("A","divide","B", ...
+                "Ratio",Unit="fraction"),"iam:IAMFrame:UnknownUnit")
+        end
+
+        function testShareUsesDeclaredFractionAndPercentConventions(tc)
+            frame = iam.IAMFrame(calculationData());
+
+            [fraction,report] = frame.share("A","B","Share");
+            percent = frame.share("A","B","Share",Convention="percent");
+            first = fraction.toTable().Scenario == "Scenario One" & ...
+                fraction.toTable().Region == "World";
+            firstPercent = percent.toTable().Scenario == "Scenario One" & ...
+                percent.toTable().Region == "World";
+
+            tc.verifyEqual(fraction.toTable().Value(first),0.5,AbsTol=1e-12)
+            tc.verifyEqual(percent.toTable().Value(firstPercent),50,AbsTol=1e-12)
+            tc.verifyEqual(fraction.Units,"fraction")
+            tc.verifyEqual(percent.Units,"%")
+            tc.verifyEqual(height(report.ZeroDenominators),1)
+        end
+
+        function testCompareBaselineAlignsCoordinatesAndReportsMissingData(tc)
+            frame = iam.IAMFrame(baselineData());
+
+            [difference,report] = frame.compareBaseline("Policy","Baseline", ...
+                "Emissions","Emissions difference");
+            [percent,percentReport] = frame.compareBaseline("Policy","Baseline", ...
+                "Emissions","Percent change",Operation="percentChange");
+            data = difference.toTable();
+            world2020 = data.Region == "World" & data.Year == 2020;
+            europe2020 = data.Region == "Europe" & data.Year == 2020;
+            world2030 = data.Region == "World" & data.Year == 2030;
+            world2040 = data.Region == "World" & data.Year == 2040;
+            percentData = percent.toTable();
+            percent2020 = percentData.Region == "World" & percentData.Year == 2020;
+            percent2030 = percentData.Region == "World" & percentData.Year == 2030;
+
+            tc.verifyEqual(data.Value(world2020),2,AbsTol=1e-12)
+            tc.verifyEqual(data.Value(europe2020),3,AbsTol=1e-12)
+            tc.verifyEqual(data.Value(world2030),15,AbsTol=1e-12)
+            tc.verifyTrue(isnan(data.Value(world2040)))
+            tc.verifyEqual(percentData.Value(percent2020),20,AbsTol=1e-12)
+            tc.verifyTrue(isnan(percentData.Value(percent2030)))
+            tc.verifyEqual(height(report.MissingOperands),1)
+            tc.verifyEqual(height(percentReport.ZeroDenominators),1)
+            tc.verifyEqual(difference.Scenarios,"Policy")
+
+            incompatible = baselineData();
+            incompatible.Unit(incompatible.Scenario == "Baseline") = "kt CO2/yr";
+            incompatibleFrame = iam.IAMFrame(incompatible);
+            tc.verifyError(@() incompatibleFrame.compareBaseline("Policy", ...
+                "Baseline","Emissions","Difference"), ...
+                "iam:IAMFrame:IncompatibleUnits")
+        end
+
+        function testLoanStressExampleUsesFrameShareAndBaselineMethods(tc)
+            frame = iam.IAMFrame(marketShareData());
+
+            shocks = computeShocks(frame,"Baseline","Policy","Total","Sector");
+
+            tc.verifyEqual(shocks.Shock,[0.5;0.5],AbsTol=1e-12)
+            tc.verifyEqual(year(shocks.Time),[2020;2030])
+        end
+
         function testHeadAndTail(tc)
             frame = iam.IAMFrame(buildSampleTimeseries());
 
@@ -620,6 +879,44 @@ data = table(["Local model"; "Local model"], ...
     ["World"; "World"], strings(2,1), [2020; 2030], [1; NaN], ...
     'VariableNames', {'Model', 'Scenario', 'Variable', 'Region', ...
     'Unit', 'Year', 'Value'});
+end
+
+function data = calculationData()
+data = table( ...
+    repmat("Model A",6,1), ...
+    ["Scenario One";"Scenario One";"Scenario One";"Scenario One"; ...
+    "Scenario Two";"Scenario Two"], ...
+    ["A";"B";"A";"B";"A";"B"], ...
+    ["World";"World";"Europe";"Europe";"World";"Europe"], ...
+    repmat("EJ/yr",6,1),[101;101;101;101;202;202],ones(6,1), ...
+    repmat(2020,6,1),[2;4;3;6;5;0], ...
+    VariableNames=["Model","Scenario","Variable","Region","Unit", ...
+    "RunId","Version","Year","Value"]);
+end
+
+function data = baselineData()
+data = table(repmat("Model A",7,1), ...
+    ["Policy";"Policy";"Policy";"Policy";"Baseline";"Baseline";"Baseline"], ...
+    repmat("Emissions",7,1), ...
+    ["World";"World";"World";"Europe";"World";"World";"Europe"], ...
+    repmat("Mt CO2/yr",7,1),[201;201;201;201;101;101;101],ones(7,1), ...
+    [2020;2030;2040;2020;2020;2030;2020],[12;15;20;6;10;0;3], ...
+    VariableNames=["Model","Scenario","Variable","Region","Unit", ...
+    "RunId","Version","Year","Value"]);
+end
+
+function data = marketShareData()
+data = table(repmat("Model A",8,1), ...
+    ["Baseline";"Baseline";"Baseline";"Baseline"; ...
+    "Policy";"Policy";"Policy";"Policy"], ...
+    ["Total";"Sector";"Total";"Sector"; ...
+    "Total";"Sector";"Total";"Sector"], ...
+    repmat("World",8,1),repmat("TWh/yr",8,1), ...
+    ones(8,1),repmat(2020,8,1), ...
+    [10;2;12;2.4;10;3;12;3.6], ...
+    VariableNames=["Model","Scenario","Variable","Region","Unit", ...
+    "Version","Year","Value"]);
+data.Year([3 4 7 8]) = 2030;
 end
 
 function frame = singleObservationFrame(scenario, runId, value, runInfo, year)
