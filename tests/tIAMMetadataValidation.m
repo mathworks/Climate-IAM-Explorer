@@ -143,6 +143,21 @@ classdef tIAMMetadataValidation < matlab.unittest.TestCase
             tc.verifyEqual(height(selected.RunInfo),2)
         end
 
+        function testMultipleFiltersPreserveLocalOverrides(tc)
+            info = table(["M";"M"],["A";"A"],[NaN;NaN],[7;8], ...
+                {struct(Category="Low",Target=1.5);struct(Category="High",Target=1.5)}, ...
+                VariableNames=["model","scenario","version","run_id","metadata"]);
+            frame = iam.IAMFrame(exampleData(),RunInfo=info).setMeta( ...
+                table("M","A","Chosen",VariableNames=["Model","Scenario","Category"]));
+
+            selected = frame.filter(metadata=struct(Category="Chosen",Target=1.5),strict=true);
+            reversed = frame.filter(metadata=struct(Target=1.5,Category="Chosen"),strict=true);
+
+            tc.verifyEqual(selected.Scenarios,"A")
+            tc.verifyEqual(reversed.toTable(),selected.toTable())
+            tc.verifyEqual(height(selected.RunInfo),2)
+        end
+
         function testExcludedAnnotationsMustBeFlags(tc)
             frame = iam.IAMFrame(exampleData());
             tc.verifyError(@() frame.setMeta(table("M","A",2, ...
@@ -227,6 +242,18 @@ classdef tIAMMetadataValidation < matlab.unittest.TestCase
             tc.verifyEqual(report.Status,"NotChecked")
             tc.verifyEqual(report.Scenarios.Status,["Passed";"Passed";"NotChecked";"NotChecked"])
             tc.verifyEqual(report.CheckedCount,2)
+        end
+
+        function testMetadataScopeRetainsUncheckedCoordinates(tc)
+            frame = sourceFrame();
+
+            report = frame.validate(Filter=struct(metadata= ...
+                struct(Category="Low",Target=1.5),years=1970,strict=true));
+
+            tc.verifyEqual(report.Status,"NotChecked")
+            tc.verifyEqual(report.Scenarios.Scenario,"A")
+            tc.verifyEqual(report.Scenarios.Status,"NotChecked")
+            tc.verifyEqual(report.CheckedCount,0)
         end
 
         function testUnmatchedEvidenceNeverPasses(tc)

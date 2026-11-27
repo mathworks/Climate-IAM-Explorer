@@ -270,59 +270,8 @@ classdef IAMFrame
                 error("iam:IAMFrame:InvalidOperation", ...
                     "Operation must be add, subtract, multiply, or divide.")
             end
-            validateDerivedLabels(leftVariable,rightVariable,outputVariable,outputUnit)
-            left = obj.Data(obj.Data.Variable == leftVariable,:);
-            right = obj.Data(obj.Data.Variable == rightVariable,:);
-            if isempty(left) || isempty(right)
-                error("iam:IAMFrame:MissingOperandVariable", ...
-                    "Both operand variables must occur in the frame.")
-            end
-            if any(left.Unit == "") || any(right.Unit == "")
-                error("iam:IAMFrame:UnknownUnit", ...
-                    "Calculations require known units for both operands.")
-            end
-            if ismember(operation,["add","subtract"]) && ...
-                    (any(left.Unit ~= outputUnit) || any(right.Unit ~= outputUnit))
-                error("iam:IAMFrame:IncompatibleUnits", ...
-                    "Addition and subtraction require operands and output to use the same unit.")
-            end
-            keys = ["Model","Scenario","Version","Region","Year"];
-            [aligned,leftLoc,rightLoc] = alignObservationRows(left,right,keys);
-            leftPresent = leftLoc > 0;
-            rightPresent = rightLoc > 0;
-            leftValue = NaN(height(aligned),1);
-            rightValue = NaN(height(aligned),1);
-            leftRun = NaN(height(aligned),1);
-            rightRun = NaN(height(aligned),1);
-            leftValue(leftPresent) = left.Value(leftLoc(leftPresent));
-            rightValue(rightPresent) = right.Value(rightLoc(rightPresent));
-            leftRun(leftPresent) = left.RunId(leftLoc(leftPresent));
-            rightRun(rightPresent) = right.RunId(rightLoc(rightPresent));
-            missingLeft = ~leftPresent | isnan(leftValue);
-            missingRight = ~rightPresent | isnan(rightValue);
-            zeroDenominator = rightPresent & ~isnan(rightValue) & rightValue == 0 & ...
-                operation == "divide";
-            values = NaN(height(aligned),1);
-            computable = ~missingLeft & ~missingRight & ~zeroDenominator;
-            switch operation
-                case "add"
-                    values(computable) = leftValue(computable) + rightValue(computable);
-                case "subtract"
-                    values(computable) = leftValue(computable) - rightValue(computable);
-                case "multiply"
-                    values(computable) = leftValue(computable).*rightValue(computable);
-                case "divide"
-                    values(computable) = leftValue(computable)./rightValue(computable);
-            end
-            if any(isinf(values))
-                error("iam:IAMFrame:CalculationOverflow", ...
-                    "The calculation produced an infinite value.")
-            end
-            runId = alignedRunIds(leftRun,rightRun,leftPresent,rightPresent);
-            data = calculatedObservationTable(aligned,outputVariable,outputUnit,runId,values);
-            out = derivedFrame({obj,obj},data,{left,right}, ...
-                {leftLoc,rightLoc},["left","right"]);
-            report = calculationReport(aligned,missingLeft,missingRight,zeroDenominator,nnz(computable));
+            [out,report] = obj.calculateVariables(leftVariable,operation, ...
+                rightVariable,outputVariable,Unit=outputUnit);
         end
 
         function [out, report] = share(obj, numeratorVariable, ...
@@ -357,33 +306,10 @@ classdef IAMFrame
             end
             numeratorVariable = string(numeratorVariable);
             denominatorVariable = string(denominatorVariable);
-            numerator = obj.Data(obj.Data.Variable == numeratorVariable,:);
-            denominator = obj.Data(obj.Data.Variable == denominatorVariable,:);
-            if ~isempty(numerator) && ~isempty(denominator)
-                keys = ["Model","Scenario","Version","Region","Year"];
-                [~,numeratorLoc,denominatorLoc] = ...
-                    alignObservationRows(numerator,denominator,keys);
-                paired = numeratorLoc > 0 & denominatorLoc > 0;
-                if any(numerator.Unit(numeratorLoc(paired)) ~= ...
-                        denominator.Unit(denominatorLoc(paired)))
-                    error("iam:IAMFrame:IncompatibleUnits", ...
-                        "Share operands must use identical units.")
-                end
-            end
-            [out,report] = obj.calculate(numeratorVariable,"divide", ...
-                denominatorVariable,outputVariable,Unit=unit);
-            if scale ~= 1
-                data = out.toTable();
-                data.Value = data.Value.*scale;
-                if any(isinf(data.Value))
-                    error("iam:IAMFrame:CalculationOverflow", ...
-                        "The share calculation produced an infinite value.")
-                end
-                provenance = out.Provenance;
-                provenance.Unit(:) = unit;
-                out = iam.IAMFrame(data,RunInfo=out.RunInfo,Metadata=out.meta(), ...
-                    Provenance=provenance);
-            end
+            outputVariable = string(outputVariable);
+            [out,report] = obj.calculateVariables(numeratorVariable,"divide", ...
+                denominatorVariable,outputVariable,Unit=unit,Scale=scale, ...
+                RequireMatchingUnits=true);
         end
 
         function [out, report] = compareBaseline(obj, targetScenario, ...
@@ -866,6 +792,93 @@ classdef IAMFrame
             ts = iam.IAMTimeseries(data);
         end
     end
+    methods (Access = private)
+        function [out, report] = calculateVariables(obj, leftVariable, ...
+                operation, rightVariable, outputVariable, opts)
+            arguments
+                obj
+                leftVariable
+                operation
+                rightVariable
+                outputVariable
+                opts.Unit (1,1) string
+                opts.Scale (1,1) double = 1
+                opts.RequireMatchingUnits (1,1) logical = false
+            end
+            outputUnit = opts.Unit;
+            left = obj.Data(obj.Data.Variable == leftVariable,:);
+            right = obj.Data(obj.Data.Variable == rightVariable,:);
+            keys = ["Model","Scenario","Version","Region","Year"];
+            if opts.RequireMatchingUnits && ~isempty(left) && ~isempty(right)
+                [aligned,leftLoc,rightLoc] = alignObservationRows(left,right,keys);
+                paired = leftLoc > 0 & rightLoc > 0;
+                if any(left.Unit(leftLoc(paired)) ~= right.Unit(rightLoc(paired)))
+                    error("iam:IAMFrame:IncompatibleUnits", ...
+                        "Share operands must use identical units.")
+                end
+            end
+            validateDerivedLabels(leftVariable,rightVariable,outputVariable,outputUnit)
+            if isempty(left) || isempty(right)
+                error("iam:IAMFrame:MissingOperandVariable", ...
+                    "Both operand variables must occur in the frame.")
+            end
+            if any(left.Unit == "") || any(right.Unit == "")
+                error("iam:IAMFrame:UnknownUnit", ...
+                    "Calculations require known units for both operands.")
+            end
+            if ismember(operation,["add","subtract"]) && ...
+                    (any(left.Unit ~= outputUnit) || any(right.Unit ~= outputUnit))
+                error("iam:IAMFrame:IncompatibleUnits", ...
+                    "Addition and subtraction require operands and output to use the same unit.")
+            end
+            if ~opts.RequireMatchingUnits
+                [aligned,leftLoc,rightLoc] = alignObservationRows(left,right,keys);
+            end
+            leftPresent = leftLoc > 0;
+            rightPresent = rightLoc > 0;
+            leftValue = NaN(height(aligned),1);
+            rightValue = NaN(height(aligned),1);
+            leftRun = NaN(height(aligned),1);
+            rightRun = NaN(height(aligned),1);
+            leftValue(leftPresent) = left.Value(leftLoc(leftPresent));
+            rightValue(rightPresent) = right.Value(rightLoc(rightPresent));
+            leftRun(leftPresent) = left.RunId(leftLoc(leftPresent));
+            rightRun(rightPresent) = right.RunId(rightLoc(rightPresent));
+            missingLeft = ~leftPresent | isnan(leftValue);
+            missingRight = ~rightPresent | isnan(rightValue);
+            zeroDenominator = rightPresent & ~isnan(rightValue) & rightValue == 0 & ...
+                operation == "divide";
+            values = NaN(height(aligned),1);
+            computable = ~missingLeft & ~missingRight & ~zeroDenominator;
+            switch operation
+                case "add"
+                    values(computable) = leftValue(computable) + rightValue(computable);
+                case "subtract"
+                    values(computable) = leftValue(computable) - rightValue(computable);
+                case "multiply"
+                    values(computable) = leftValue(computable).*rightValue(computable);
+                case "divide"
+                    values(computable) = leftValue(computable)./rightValue(computable);
+            end
+            if any(isinf(values))
+                error("iam:IAMFrame:CalculationOverflow", ...
+                    "The calculation produced an infinite value.")
+            end
+            if opts.Scale ~= 1
+                values = values.*opts.Scale;
+                if any(isinf(values))
+                    error("iam:IAMFrame:CalculationOverflow", ...
+                        "The share calculation produced an infinite value.")
+                end
+            end
+            runId = alignedRunIds(leftRun,rightRun,leftPresent,rightPresent);
+            data = calculatedObservationTable(aligned,outputVariable,outputUnit,runId,values);
+            out = derivedFrame({obj,obj},data,{left,right}, ...
+                {leftLoc,rightLoc},["left","right"]);
+            report = calculationReport(aligned,missingLeft,missingRight,zeroDenominator,nnz(computable));
+        end
+    end
+
     methods (Static, Hidden)
         function out = fromCalculation(sources,data,parents,locations,operands)
             out = derivedFrame(sources,data,parents,locations,operands);
@@ -1109,6 +1122,8 @@ value = NaN(numRows, 1);
 
 current = 1;
 pieces = cell(numel(ts),1);
+runInfoPieces = cell(numel(ts),1);
+metadataPieces = cell(numel(ts),1);
 for i = 1 : numel(ts)
     years = normalizeAnnualYears(ts(i).Years(:));
     tt = ts(i).Values;
@@ -1146,13 +1161,15 @@ for i = 1 : numel(ts)
     value(idx) = values;
 
     current = current + count;
-    runInfo = mergeRunInfo(runInfo,ts(i).RunInfo);
-    metadata = mergeRunInfo(metadata,ts(i).Metadata);
+    runInfoPieces{i} = ts(i).RunInfo;
+    metadataPieces{i} = ts(i).Metadata;
     pieces{i} = ts(i).Provenance;
     if isempty(pieces{i}.Properties.VariableNames)
         pieces{i} = emptyProvenance();
     end
 end
+runInfo = mergeTimeseriesMetadata(runInfoPieces);
+metadata = mergeTimeseriesMetadata(metadataPieces);
 provenance = vertcat(pieces{:});
 
 data = table(model, scenario, variable, region, unit, runId, version, yearValue, value, ...
@@ -1371,6 +1388,59 @@ for i = 1 : height(runInfo)
     keep(i) = keep(i) || ((hasRunIdKey || hasAnalyticalKey) && any(sourceMatch));
 end
 runInfo = runInfo(keep, :);
+end
+
+function merged = mergeTimeseriesMetadata(inputs)
+inputs = inputs(~cellfun(@(input) isempty(input.Properties.VariableNames),inputs));
+if isempty(inputs)
+    merged = table();
+    return
+end
+
+tables = cell(size(inputs));
+canBatch = true;
+for i = 1:numel(inputs)
+    tables{i} = normalizeRunInfoIdentityNames(inputs{i});
+    names = string(tables{i}.Properties.VariableNames);
+    for name = names
+        tables{i}.(name) = normalizeMetadataColumn(tables{i}.(name),name);
+    end
+    if i > 1
+        canBatch = canBatch && isequal(names,string(tables{1}.Properties.VariableNames));
+        if canBatch
+            for name = names
+                left = tables{1}.(name);
+                right = tables{i}.(name);
+                canBatch = canBatch && strcmp(class(left),class(right)) && ...
+                    (~isdatetime(left) || strcmp(left.TimeZone,right.TimeZone));
+            end
+        end
+    end
+end
+
+if canBatch
+    rows = vertcat(tables{:});
+    keys = intersect(["run_id","model","scenario","version"], ...
+        string(rows.Properties.VariableNames),"stable");
+    canBatch = ~isempty(keys);
+    for name = keys
+        missing = arrayfun(@isMissingMetadataValue,rows.(name));
+        if name == "version"
+            canBatch = canBatch && (~any(missing) || all(missing));
+        else
+            canBatch = canBatch && ~any(missing);
+        end
+    end
+end
+if canBatch
+    merged = mergeRunInfo(table(),rows);
+else
+    % Preserve sequential enrichment for partial keys and differing schemas.
+    merged = table();
+    for i = 1:numel(inputs)
+        merged = mergeRunInfo(merged,inputs{i});
+    end
+end
 end
 
 function runInfo = mergeRunInfo(leftInfo, rightInfo)
@@ -1625,14 +1695,17 @@ if isempty(keyNames)
     return
 end
 
+columnNames = existing.Properties.VariableNames;
+[~, keyLocations] = ismember(keyNames,lower(string(columnNames)));
+analyticalKeys = keyNames(keyNames ~= "run_id");
 for i = 1 : height(existing)
     sharedRunId = false;
     sameIdentity = true;
     sharedModel = false;
     sharedScenario = false;
-    for name = keyNames
-        columnName = existing.Properties.VariableNames{find( ...
-            lower(string(existing.Properties.VariableNames)) == name, 1)};
+    for j = 1:numel(keyNames)
+        name = keyNames(j);
+        columnName = columnNames{keyLocations(j)};
         leftValue = existing.(columnName)(i);
         rightValue = candidate.(columnName);
         if isMissingMetadataValue(leftValue) || isMissingMetadataValue(rightValue)
@@ -1646,7 +1719,6 @@ for i = 1 : height(existing)
         sharedModel = sharedModel || name == "model";
         sharedScenario = sharedScenario || name == "scenario";
     end
-    analyticalKeys = keyNames(keyNames ~= "run_id");
     if sameIdentity && (sharedRunId || (sharedModel && sharedScenario && ...
             metadataRowsEqual(existing(i,:), candidate, analyticalKeys)))
         if ~isempty(match)
@@ -1859,6 +1931,8 @@ function keep = matchFrameMetadata(data, runInfo, local, filters, strict)
 selected = true(height(keys),1);
 localNames = string(local.Properties.VariableNames);
 sourceNames = sourceMetadataNames(runInfo);
+sourceRows = cell(height(keys),1);
+loaded = false(height(keys),1);
 for requested = string(fieldnames(filters))'
     selector = filters.(requested);
     if ~(isnumeric(selector) || islogical(selector) || isstring(selector) || ...
@@ -1887,7 +1961,11 @@ for requested = string(fieldnames(filters))'
     end
     matched = false(height(keys),1);
     for i = find(~override)'
-        rows = subsetRunInfo(runInfo,data(group == i,:));
+        if ~loaded(i)
+            sourceRows{i} = subsetRunInfo(runInfo,data(group == i,:));
+            loaded(i) = true;
+        end
+        rows = sourceRows{i};
         value = [];
         for j = 1:height(rows)
             candidate = sourceMetadataValue(rows(j,:),sourceName);
@@ -2008,8 +2086,13 @@ scenarioFilters = rmfield(filters,cellstr(names(coordinates)));
 args = namedargs2cell(scenarioFilters);
 scope = obj.filter(args{:});
 if nargout > 1
-    args = namedargs2cell(filters);
-    selected = scope.filter(args{:});
+    selected = scope;
+    if any(coordinates)
+        coordinateFilters = rmfield(filters, ...
+            cellstr(names(~coordinates & ~strcmpi(names,"strict"))));
+        args = namedargs2cell(coordinateFilters);
+        selected = scope.filter(args{:});
+    end
 end
 end
 

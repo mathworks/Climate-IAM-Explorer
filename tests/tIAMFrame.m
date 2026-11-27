@@ -83,6 +83,60 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyEqual(roundTrip(1).Values{:,:}, ts(1).Values{:,:})
         end
 
+        function testImportMergesCompatibleMetadataTextTypes(tc)
+            first = singleObservationFrame("Baseline",7,5, ...
+                table(7,"A",VariableNames=["run_id","Category"]));
+            second = singleObservationFrame("Baseline",7,6, ...
+                table(7,{char("A")},VariableNames=["run_id","Category"]),2030);
+
+            frame = iam.IAMFrame([first.toTimeseries();second.toTimeseries()]);
+
+            tc.verifyEqual(height(frame.RunInfo),1)
+            tc.verifyEqual(frame.RunInfo.Category,"A")
+            tc.verifyEqual(frame.Years,[2020;2030])
+        end
+
+        function testImportEnrichesPartialMetadataSchemas(tc)
+            first = singleObservationFrame("Baseline",7,5, ...
+                table(7,"A",VariableNames=["run_id","Category"]));
+            second = singleObservationFrame("Baseline",7,6, ...
+                table("Model","Baseline",1,7,1.5, ...
+                VariableNames=["model","scenario","version","run_id","Target"]),2030);
+
+            frame = iam.IAMFrame([first.toTimeseries();second.toTimeseries()]);
+
+            tc.verifyEqual(height(frame.RunInfo),1)
+            tc.verifyEqual(frame.RunInfo.Category,"A")
+            tc.verifyEqual(frame.RunInfo.Target,1.5)
+            tc.verifyEqual(frame.RunInfo.model,"Model")
+            tc.verifyEqual(frame.RunInfo.scenario,"Baseline")
+        end
+
+        function testImportRejectsConflictingNestedMetadata(tc)
+            first = singleObservationFrame("Baseline",7,5, ...
+                table(7,struct(Category="Low"),VariableNames=["run_id","metadata"]));
+            second = singleObservationFrame("Baseline",7,6, ...
+                table(7,struct(Category="High"),VariableNames=["run_id","metadata"]),2030);
+            series = [first.toTimeseries();second.toTimeseries()];
+
+            tc.verifyError(@() iam.IAMFrame(series),"iam:IAMFrame:IncompatibleRunInfo")
+        end
+
+        function testImportPreservesEquivalentTimezoneInstants(tc)
+            firstInfo = table(7,datetime(2026,1,1,TimeZone="UTC"), ...
+                VariableNames=["run_id","Retrieved"]);
+            secondInfo = firstInfo;
+            secondInfo.Retrieved.TimeZone = "America/New_York";
+            first = singleObservationFrame("Baseline",7,5,firstInfo);
+            second = singleObservationFrame("Baseline",7,6,secondInfo,2030);
+
+            frame = iam.IAMFrame([first.toTimeseries();second.toTimeseries()]);
+
+            tc.verifyEqual(height(frame.RunInfo),1)
+            tc.verifyEqual(frame.RunInfo.Retrieved,firstInfo.Retrieved)
+            tc.verifyEqual(frame.RunInfo.Retrieved.TimeZone,'UTC')
+        end
+
         function testConstructFromEmptyTimeseries(tc)
             frame = iam.IAMFrame(iam.IAMTimeseries([]));
 
@@ -786,6 +840,27 @@ classdef tIAMFrame < matlab.unittest.TestCase
             tc.verifyEqual(fraction.Units,"fraction")
             tc.verifyEqual(percent.Units,"%")
             tc.verifyEqual(height(report.ZeroDenominators),1)
+        end
+
+        function testShareRejectsMismatchedOperandUnits(tc)
+            data = calculationData();
+            data.Unit(data.Variable == "B") = "PJ/yr";
+            frame = iam.IAMFrame(data);
+
+            tc.verifyError(@() frame.share("A","B","Share"), ...
+                "iam:IAMFrame:IncompatibleUnits")
+            tc.verifyError(@() frame.share("A","B","Share",Convention="percent"), ...
+                "iam:IAMFrame:IncompatibleUnits")
+        end
+
+        function testPercentShareRejectsScalingOverflow(tc)
+            data = calculationData();
+            data = data(1:2,:);
+            data.Value = [realmax/2;1];
+            frame = iam.IAMFrame(data);
+
+            tc.verifyError(@() frame.share("A","B","Share",Convention="percent"), ...
+                "iam:IAMFrame:CalculationOverflow")
         end
 
         function testCompareBaselineAlignsCoordinatesAndReportsMissingData(tc)

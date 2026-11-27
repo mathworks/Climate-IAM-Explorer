@@ -50,6 +50,16 @@ jobs:
         with:
           release: ${{ matrix.matlab-version }}
 
+      - name: Setup project on older releases
+        if: matrix.release == 'R2024a'
+        uses: matlab-actions/run-command@v3
+        with:
+          command: |
+            project = matlab.project.createProject(Folder=pwd, Name="rdatareader");
+            addPath(project, fullfile(pwd, "tbx", "rdatareader"));
+            addPath(project, fullfile(pwd, "tbx", "doc"));
+            addPath(project, fullfile(pwd, "tests"));
+
       # Runs buildtool, code issues + tests + toolboxPackaging
       - name: Run build
         uses: matlab-actions/run-build@v3
