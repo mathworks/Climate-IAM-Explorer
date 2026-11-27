@@ -23,7 +23,7 @@ plan('doc') = DocMakerTask( ...
 plan.DefaultTasks = "archive";
 
 % Make the "archive" task dependent on the "check" and "test" tasks
-plan("archive").Dependencies = ["check" "test"];
+plan("archive").Dependencies = ["check" "test", "doc"];
 end
 
 function archiveTask(~)

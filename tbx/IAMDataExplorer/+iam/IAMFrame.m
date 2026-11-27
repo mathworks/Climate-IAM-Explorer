@@ -1391,6 +1391,7 @@ runInfo = runInfo(keep, :);
 end
 
 function merged = mergeTimeseriesMetadata(inputs)
+originalInputs = inputs;
 inputs = inputs(~cellfun(@(input) isempty(input.Properties.VariableNames),inputs));
 if isempty(inputs)
     merged = table();
@@ -1437,8 +1438,8 @@ if canBatch
 else
     % Preserve sequential enrichment for partial keys and differing schemas.
     merged = table();
-    for i = 1:numel(inputs)
-        merged = mergeRunInfo(merged,inputs{i});
+    for i = 1:numel(originalInputs)
+        merged = mergeRunInfo(merged,originalInputs{i});
     end
 end
 end
