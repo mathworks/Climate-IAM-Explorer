@@ -112,7 +112,7 @@ This same process can be done with regions
 
 and with model/scenarios to find out exact runs:
 
-    runs = e.filterRuns('model','GCAM','scenario','immediate','strict',false);
+    runs = e.filterRuns('models', "GCAM", 'scenarios', "immediate", 'strict', false);
     e.RunList(ismember(e.RunList.run_id,runs),1:8)
 
 ## Working with the IAM Timeseries

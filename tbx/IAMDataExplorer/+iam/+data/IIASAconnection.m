@@ -77,8 +77,11 @@ classdef IIASAconnection < iam.data.Connection
             url = strjoin([obj.Config.baseUrl, "metadata/types"], "/");
             
             value = obj.getRequest(url);
-            
-            value = struct2table(value);
+            if isempty(value)
+                value = table.empty();
+            else
+                value = struct2table(value);
+            end
             
         end
         
@@ -110,13 +113,10 @@ classdef IIASAconnection < iam.data.Connection
         function value = getDocumentation(obj, type, idx)
             
             url = strjoin([obj.Config.baseUrl, "docs"], "/");
-            
-            headerFields = {'Authorization', ['Bearer ', obj.AuthToken]; 'Content-Type', 'application/json'};
-            options = weboptions('HeaderFields', headerFields, 'Timeout', 40, 'CertificateFilename', '');
-            
+
             input = sprintf("{""keys"": [ ""/%s/%d""]}",type, idx);
-            
-            value = webwrite(url, input, options);
+
+            value = obj.postRequest(url, input);
             
         end
         
@@ -129,16 +129,19 @@ classdef IIASAconnection < iam.data.Connection
             p = inputParser();
             
             func = @(x) isstring(x) | ischar(x);
+            yearFunc = @(x) isnumeric(x) | isstring(x) | ischar(x);
             addParameter(p, 'runs', [], @isnumeric)
             addParameter(p, 'variables', '', func)
             addParameter(p, 'regions', '', func)
-            addParameter(p, 'years', '', func)
+            addParameter(p, 'years', [], yearFunc)
             addParameter(p, 'units', '', func)
             addParameter(p, 'timeslices', '', func)
+            addParameter(p, 'progressMonitorFcn', [], ...
+                @(x) isempty(x) || isa(x, 'function_handle'))
             
             parse(p, varargin{:});
             
-            runNum = strjoin(string(num2str(p.Results.runs)),',');
+            runNum = strjoin(string(p.Results.runs(:)'),',');
             
             variable   = parseString(p.Results.variables);
             region     = parseString(p.Results.regions);
@@ -150,45 +153,45 @@ classdef IIASAconnection < iam.data.Connection
             
             input = "{""filters"": {""variables"": " + variable + ", ""runs"": [" + runNum + "], ""regions"":" + region + ", ""years"":" + years + ", ""units"": " + units + ", ""timeslices"": " + timeslices + "}}";
             
-            response = obj.postRequest(Url, input);
+            response = obj.postRequest(Url, input, p.Results.progressMonitorFcn);
             
             data = struct.empty();
             if ~isempty(response)
                 tb = struct2table(response);
                 
-                vars = {'runId', 'model', 'scenario', 'variable', 'region', 'unit'};
-                
+                % Compare columns once instead of slicing tables per observation.
+                newSeries = tb.runId(1:end-1) ~= tb.runId(2:end);
+                for name = ["model", "scenario", "variable", "region", "unit"]
+                    newSeries = newSeries | ...
+                        ~strcmp(tb.(name)(1:end-1), tb.(name)(2:end));
+                end
+                stops = find([newSeries; true]);
+
                 current = 1;
-                num = 1;
                 data = struct([]);
                 
-                for i = 1 : height(tb)
-                    
-                    if i == height(tb) || ~isequal(tb(i, vars), tb(i+1, vars))
-                        
-                        data(num).model = string(tb.model{i});
-                        data(num).scenario = string(tb.scenario{i});
-                        data(num).variable = string(tb.variable{i});
-                        data(num).region = string(tb.region{i});
-                        data(num).unit = string(tb.unit{i});
-                        data(num).runId = string(tb.runId(i));
-                        data(num).version = string(tb.version(i));
-                        data(num).years = tb.year(current:i);
-                        
-                        if strlength(data(num).variable) >= 60
-                            varName = extractBetween(data(num).variable,1, 59);
-                        else
-                            varName = data(num).variable;
-                        end
-                        
-                        data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
-                            'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', varName);
-                        
-                        num = num + 1;
-                        current = i + 1;
-                        
+                for num = 1:numel(stops)
+                    i = stops(num);
+
+                    data(num).model = string(tb.model{i});
+                    data(num).scenario = string(tb.scenario{i});
+                    data(num).variable = string(tb.variable{i});
+                    data(num).region = string(tb.region{i});
+                    data(num).unit = string(tb.unit{i});
+                    data(num).runId = string(tb.runId(i));
+                    data(num).version = string(tb.version(i));
+                    data(num).years = tb.year(current:i);
+
+                    if strlength(data(num).variable) >= 60
+                        varName = extractBetween(data(num).variable,1, 59);
+                    else
+                        varName = data(num).variable;
                     end
-                    
+
+                    data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
+                        'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', varName);
+
+                    current = i + 1;
                 end
             end
             
@@ -205,6 +208,11 @@ classdef IIASAconnection < iam.data.Connection
                 
             end
             
+        end
+
+        function data = getBulkDataWithProgressMonitor(obj, progressMonitorFcn, varargin)
+            data = obj.getBulkData(varargin{:}, ...
+                'progressMonitorFcn', progressMonitorFcn);
         end
         
         function response = getAllModels(obj)
@@ -325,14 +333,30 @@ classdef IIASAconnection < iam.data.Connection
             idx_productName = matches(obj.AllEnvironments.productName, value,'IgnoreCase',true);
             idx_env = matches(obj.AllEnvironments.env, value,'IgnoreCase',true);
             
-            idx = idx_name | idx_productName | idx_env;
+            if nnz(idx_name) == 1
+                idx = idx_name;
+            elseif nnz(idx_productName) == 1
+                idx = idx_productName;
+            elseif nnz(idx_env) == 1
+                idx = idx_env;
+            else
+                idx = idx_name | idx_productName | idx_env;
+            end
             
             if ~any(idx)
-                error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of: " + strjoin(obj.AllEnvironments.env,', '))
+                error('iiasaConnection:invalidEnvironment', "This is not a valid environment, please select one of:\n\n " + strjoin(obj.AllEnvironments.env,'   \n '))
             end
             
             if nnz(idx) > 1
-               idx = find(idx, 1); 
+                if nnz(idx_env) > 1
+                    error('IIASAConnection:ambiguousEnvironmentAlias', ...
+                        "Environment alias '" + string(value) + "' is ambiguous. Use one of: " + ...
+                        strjoin(obj.AllEnvironments.name(idx_env), ', '))
+                end
+
+                error('IIASAConnection:ambiguousEnvironmentSelection', ...
+                    "Environment '" + string(value) + "' matches multiple entries. Use one of: " + ...
+                    strjoin(obj.AllEnvironments.name(idx), ', '))
             end
             
             obj.getEnvConfig( obj.AllEnvironments(idx, :) )
@@ -444,7 +468,7 @@ classdef IIASAconnection < iam.data.Connection
                     for j = 1 : length(con)
                         switch con(j).path
                             case 'env'
-                                env = genvarname(con(j).value);
+                                env = string(con(j).value);
                             case 'productName'
                                 pname = con(j).value;
                             case 'uiUrl'
@@ -458,6 +482,16 @@ classdef IIASAconnection < iam.data.Connection
 
             % sort environments alphabetically
             tb = sortrows(tb, "env", "ascend");
+
+            validEnv = tb.env(tb.env ~= "");
+            [uniqueEnv, ~, envGroup] = unique(validEnv);
+            envCounts = accumarray(envGroup, 1);
+            duplicateEnv = uniqueEnv(envCounts > 1);
+            duplicateEnv(duplicateEnv == "") = [];
+            for i = 1 : numel(duplicateEnv)
+                warning('IIASAConnection:DuplicateEnvironmentAlias', ...
+                    "Duplicate environment alias '" + duplicateEnv(i) + "' detected. Use name or productName to select a connection.")
+            end
             
             obj.AllEnvironments = tb;
             
@@ -493,7 +527,10 @@ classdef IIASAconnection < iam.data.Connection
             
         end
         
-        function response = postRequest(obj, url, input)
+        function response = postRequest(obj, url, input, progressMonitorFcn)
+            if nargin < 4
+                progressMonitorFcn = [];
+            end
             
             import matlab.net.*;
             import matlab.net.http.*;
@@ -510,7 +547,20 @@ classdef IIASAconnection < iam.data.Connection
             rm = RequestMessage('post', [hf1, hf2, hf3]);
             rm.Body = mb;
             
-            rsp = rm.send(url, obj.ConnectionProperties);
+            requestOptions = obj.ConnectionProperties;
+            if ~isempty(progressMonitorFcn)
+                requestOptions.ProgressMonitorFcn = progressMonitorFcn;
+                requestOptions.UseProgressMonitor = true;
+            end
+            deferConversion = ~isempty(progressMonitorFcn) && requestOptions.ConvertResponse;
+            if deferConversion
+                % End transfer progress before the response is converted to data.
+                requestOptions.ConvertResponse = false;
+            end
+            rsp = rm.send(url, requestOptions);
+            if deferConversion
+                rsp = rsp.complete();
+            end
             
             if rsp.StatusCode == "OK"
                 response = rsp.Body.Data;
@@ -518,7 +568,7 @@ classdef IIASAconnection < iam.data.Connection
             elseif rsp.StatusCode == "Unauthorized" && isfield(rsp.Body.Data, 'errorCode') && rsp.Body.Data.errorCode == "TOKEN_EXPIRED"
 
                 obj.refreshToken()
-                response = obj.postRequest(url, input);
+                response = obj.postRequest(url, input, progressMonitorFcn);
                 
             else
                 error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
@@ -546,6 +596,9 @@ classdef IIASAconnection < iam.data.Connection
             
             if rsp.StatusCode == "OK"
                 res = rsp.Body.Data;
+            elseif rsp.StatusCode == "Unauthorized" && isfield(rsp.Body.Data, 'errorCode') && rsp.Body.Data.errorCode == "TOKEN_EXPIRED"
+                obj.refreshToken()
+                res = obj.getRequest(url, varargin{:});
             else
                 error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data.errorMessage)
             end

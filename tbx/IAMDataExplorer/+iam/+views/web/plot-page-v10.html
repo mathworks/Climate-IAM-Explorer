@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IAM Series Preview</title>
+  <link rel="stylesheet" href="css/tokens.css?v=4">
+  <link rel="stylesheet" href="css/plot.css?v=13">
+  <script defer src="js/plot.js?v=15"></script>
+</head>
+<body>
+  <main class="plot-app">
+    <header class="plot-header">
+      <h1>Series preview</h1>
+    </header>
+
+    <section class="chart-card" aria-label="Selected time series">
+      <div class="chart-heading">
+        <div class="chart-heading-copy">
+          <h2 id="chart-title">Select a result</h2>
+          <p id="chart-unit" class="chart-unit">Choose a row from the catalogue</p>
+        </div>
+        <div class="chart-controls">
+          <span class="series-count" id="series-count"></span>
+          <label class="sr-only" for="chart-type">Chart type</label>
+          <select id="chart-type" class="chart-type">
+            <option value="line">Line</option>
+            <option value="bar stacked">Stacked bar</option>
+            <option value="bar grouped">Grouped bar</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="chart-viewport" id="chart-viewport">
+        <svg id="chart-svg" class="chart-svg" viewBox="0 0 760 430" role="img" aria-label="Time series chart">
+          <text class="empty-chart-label" x="380" y="206" text-anchor="middle">Choose a result to preview its pathway</text>
+          <text class="empty-chart-hint" x="380" y="234" text-anchor="middle">Selected series will appear here</text>
+        </svg>
+      </div>
+
+      <div class="chart-legend" id="chart-legend" aria-label="Series legend"></div>
+      <div class="chart-note" id="chart-note" aria-live="polite"></div>
+    </section>
+  </main>
+</body>
+</html>

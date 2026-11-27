@@ -18,9 +18,13 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         TreeTab iam.views.MetaDataTabs
     end
     
-    properties (SetAccess = private)
+    properties (Dependent, SetAccess = private)
         
-        TableData (:,1) iam.IAMTimeseries
+        TableData
+        SelectedFrameData
+    end
+
+    properties (SetAccess = private)
         OpenTreeButton matlab.ui.control.Button
         Listeners
         
@@ -35,6 +39,8 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
         TableIdx (:,2) double
         TreeFields (:,1) string
         TreeChangedListeners
+        TableSummary table = defaultRunList()
+        FrameData
     end
     
     methods
@@ -56,6 +62,7 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             SDAx.Label.FontColor = 'w';
             
             obj.SearchAxes = SDAx;
+            obj.FrameData = iam.IAMFrame();
             
             obj.UITable = uitable(g1);
             obj.UITable.ColumnName = {'Model'; 'Scenario'; 'Variable'; 'Region'; 'RunId'; 'Version'};
@@ -168,15 +175,30 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             end
         end
         
-        function loadData(obj, ts)
+        function loadData(obj, data)
             
-            if ~isa(ts, 'iam.IAMTimeseries')
-                error('SearchDatabaseControls:InvalidDataType','Data must be a iam.IAMTimeseries object')
+            if isa(data, 'iam.IAMTimeseries')
+                frame = data.toFrame();
+            elseif isa(data, 'iam.IAMFrame')
+                frame = data;
+            else
+                error('SearchDatabaseControls:InvalidDataType', ...
+                    'Data must be a iam.IAMTimeseries or iam.IAMFrame object')
             end
             
-            obj.TableData = ts;
-            obj.UITable.Data = ts.getRunList;
+            obj.FrameData = frame;
+            obj.TableSummary = frame.summary();
+            obj.UITable.Data = obj.TableSummary(:, {'Model','Scenario','Variable','Region','RunId','Version'});
+            obj.TableIdx = zeros(0,2);
             
+        end
+
+        function value = get.TableData(obj)
+            value = obj.FrameData.toTimeseries();
+        end
+
+        function value = get.SelectedFrameData(obj)
+            value = obj.getSelectedFrame(true);
         end
         
         function value = get.SelectedTableData(obj)
@@ -260,10 +282,69 @@ classdef SearchDatabaseControls < matlab.mixin.SetGet
             
             indices = event.Indices;
             obj.TableIdx = indices;
-            [~,b] = intersect(obj.TableData.getRunList, obj.UITable.Data(indices(:,1),:));
-            obj.SearchAxes.changeData(obj.TableData(b));
+            selectedFrame = obj.getSelectedFrame(false);
+            if isempty(selectedFrame.toTable())
+                obj.SearchAxes.changeData(iam.IAMTimeseries.empty());
+                return
+            end
+            obj.SearchAxes.changeData(selectedFrame.toTimeseries());
             
+        end
+
+        function frame = getSelectedFrame(obj, returnAllWhenEmpty)
+            if nargin < 2
+                returnAllWhenEmpty = false;
+            end
+
+            data = obj.FrameData.toTable();
+            if isempty(data) || isempty(obj.TableSummary)
+                frame = iam.IAMFrame();
+                return
+            end
+
+            rows = unique(obj.TableIdx(:,1), 'stable');
+            if isempty(rows)
+                if returnAllWhenEmpty
+                    frame = obj.FrameData;
+                else
+                    frame = iam.IAMFrame();
+                end
+                return
+            end
+
+            selectedRows = obj.TableSummary(rows, :);
+            mask = false(height(data), 1);
+
+            for i = 1 : height(selectedRows)
+                mask = mask | matchesFrameRow(data, selectedRows(i,:));
+            end
+
+            frame = iam.IAMFrame(data(mask,:), ...
+                'RunInfo', subsetRunInfoForFrame(obj.FrameData.RunInfo, data.RunId(mask)));
         end
         
     end
+end
+
+function idx = matchesFrameRow(data, row)
+idx = matches(data.Model, row.Model, 'IgnoreCase', true) & ...
+    matches(data.Scenario, row.Scenario, 'IgnoreCase', true) & ...
+    matches(data.Variable, row.Variable, 'IgnoreCase', true) & ...
+    matches(data.Region, row.Region, 'IgnoreCase', true) & ...
+    data.RunId == row.RunId & ...
+    data.Version == row.Version;
+end
+
+function runInfo = subsetRunInfoForFrame(runInfo, runIds)
+if isempty(runInfo) || ~ismember('run_id', runInfo.Properties.VariableNames)
+    return
+end
+
+runInfo = runInfo(ismember(runInfo.run_id, unique(runIds)), :);
+end
+
+function tb = defaultRunList()
+tb = table('Size', [0, 8], ...
+    'VariableNames', {'Model','Scenario','Variable','Region','Unit','RunId','Version','NumYears'}, ...
+    'VariableTypes', {'string','string','string','string','string','double','double','double'});
 end
