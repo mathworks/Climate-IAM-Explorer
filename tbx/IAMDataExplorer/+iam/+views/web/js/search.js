@@ -14,6 +14,7 @@
   function setup(component) {
     htmlComponent = component;
     component.addEventListener("searchResults", onSearchResults);
+    component.addEventListener("searchCancelled", onSearchCancelled);
     component.addEventListener("facetOptions", onFacetOptions);
     component.addEventListener("selectionStatus", function (event) {
       const data = event.Data || {};
@@ -93,6 +94,26 @@
     setCriteriaDisabled(false);
     document.getElementById("criteria-feedback").textContent = "Search complete";
     renderResults();
+  }
+
+  function onSearchCancelled(event) {
+    const data = event.Data || {};
+    resultRecords = [];
+    selectedIds.clear();
+    selectionAnchor = null;
+    totalCount = 0;
+    hasSearched = false;
+    document.getElementById("search-button").disabled = false;
+    document.getElementById("search-button").querySelector("span").textContent = "Search database";
+    setCriteriaDisabled(false);
+    document.getElementById("initial-state").hidden = false;
+    document.getElementById("no-results").hidden = true;
+    document.getElementById("results-table").hidden = true;
+    document.getElementById("result-rows").replaceChildren();
+    document.getElementById("result-count").textContent = "—";
+    document.getElementById("criteria-feedback").textContent = "Search canceled";
+    updateWorkbookButtons();
+    showSelectionStatus(data.Message || "Search canceled");
   }
 
   function renderResults() {

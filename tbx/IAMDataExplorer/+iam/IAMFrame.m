@@ -817,6 +817,20 @@ classdef IAMFrame
             starts = find([true; diff(g) ~= 0]);
             stops  = [starts(2:end) - 1; numel(g)];
 
+            metadata = obj.meta();
+            if isempty(obj.Provenance)
+                % Regions and variables from one run share the same metadata.
+                runKeys = uniqueKeys(:, {'Model','Scenario','RunId','Version'});
+                [~, firstRun, runGroup] = unique(runKeys, 'rows', 'stable');
+                runInfo = cell(numel(firstRun), 1);
+                localMetadata = cell(numel(firstRun), 1);
+                for i = 1:numel(firstRun)
+                    rows = obj.Data(order(starts(firstRun(i))), :);
+                    runInfo{i} = subsetRunInfo(obj.RunInfo, rows);
+                    localMetadata{i} = subsetLocalMetadata(metadata, rows);
+                end
+            end
+
             data(nGroups, 1) = struct('model', "", 'scenario', "", ...
                 'variable', "", 'region', "", 'unit', "", 'runId', NaN, ...
                 'version', NaN, 'years', zeros(0,1), 'values', timetable(), ...
@@ -837,10 +851,16 @@ classdef IAMFrame
                 data(i).values   = timetable(dt(rng), value(rng), ...
                     'DimensionNames', {'Year', 'VariableUnits'}, ...
                     'VariableNames', {'Values'});
-                rows = obj.Data(order(rng),:);
-                data(i).Provenance = subsetProvenance(obj.Provenance,rows);
-                data(i).RunInfo = subsetRunInfo(obj.RunInfo,rows,data(i).Provenance);
-                data(i).Metadata = subsetLocalMetadata(obj.meta(),rows);
+                if isempty(obj.Provenance)
+                    data(i).Provenance = obj.Provenance;
+                    data(i).RunInfo = runInfo{runGroup(i)};
+                    data(i).Metadata = localMetadata{runGroup(i)};
+                else
+                    rows = obj.Data(order(rng),:);
+                    data(i).Provenance = subsetProvenance(obj.Provenance,rows);
+                    data(i).RunInfo = subsetRunInfo(obj.RunInfo,rows,data(i).Provenance);
+                    data(i).Metadata = subsetLocalMetadata(metadata,rows);
+                end
             end
 
             ts = iam.IAMTimeseries(data);

@@ -4,14 +4,20 @@ classdef RequestProgressMonitor < matlab.net.http.ProgressMonitor
         Direction matlab.net.http.MessageType
         Value uint64
         NewDir matlab.net.http.MessageType = matlab.net.http.MessageType.Request
+        ProgressDialog = []
+        CancelRequestedByUser (1,1) logical = false
     end
     
     methods
-        function obj = RequestProgressMonitor
+        function obj = RequestProgressMonitor(progressDialog)
             obj.Interval = .001;
+            if nargin > 0
+                obj.ProgressDialog = progressDialog;
+            end
         end
         
         function done(obj)
+            obj.showProcessing();
             obj.closeit();
         end
         
@@ -34,6 +40,10 @@ classdef RequestProgressMonitor < matlab.net.http.ProgressMonitor
         function update(obj,~)
             % called when Value is set
             import matlab.net.http.*
+            if ~isempty(obj.ProgressDialog)
+                obj.updateProgressDialog();
+                return
+            end
             if ~isempty(obj.Value)
                 if isempty(obj.Max)
                     % no maximum means we don't know length, so message 
@@ -78,6 +88,55 @@ classdef RequestProgressMonitor < matlab.net.http.ProgressMonitor
                 obj.CancelFcn();
                 obj.closeit();
             end
+        end
+
+        function updateProgressDialog(obj)
+            dialog = obj.ProgressDialog;
+            if isempty(dialog) || ~isvalid(dialog)
+                return
+            end
+
+            drawnow limitrate
+            if dialog.CancelRequested
+                if ~obj.CancelRequestedByUser && ~isempty(obj.CancelFcn)
+                    obj.CancelRequestedByUser = true;
+                    obj.CancelFcn();
+                end
+                return
+            end
+
+            if obj.Direction ~= matlab.net.http.MessageType.Response
+                return
+            end
+
+            if isempty(obj.Value)
+                obj.showProcessing();
+            elseif isempty(obj.Max) || obj.Max == 0
+                dialog.ShowPercentage = "off";
+                dialog.Indeterminate = "on";
+                dialog.Message = "Downloading time series (" + ...
+                    compose("%.1f MB received", double(obj.Value) / 1e6) + ")...";
+            elseif obj.Value >= obj.Max
+                obj.showProcessing();
+            else
+                dialog.Indeterminate = "off";
+                dialog.ShowPercentage = "on";
+                dialog.Value = double(obj.Value) / double(obj.Max);
+                dialog.Message = "Downloading time series...";
+            end
+        end
+
+        function showProcessing(obj)
+            dialog = obj.ProgressDialog;
+            if isempty(dialog) || ~isvalid(dialog) || ...
+                    obj.Direction ~= matlab.net.http.MessageType.Response || ...
+                    obj.CancelRequestedByUser || dialog.CancelRequested
+                return
+            end
+            dialog.ShowPercentage = "off";
+            dialog.Indeterminate = "on";
+            dialog.Message = "Processing downloaded data...";
+            drawnow;
         end
         
         function changeDir(obj,~)

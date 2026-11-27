@@ -40,6 +40,39 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyTrue(isnan(env.RunList.metadata(2).(normalizedName)))
         end
 
+        function testMetadataFilteringCombinesAllFields(tc)
+            conn = buildMockConnection();
+            conn.Runs.metadata{2} = struct(PolicyStatus="Implemented", TemperatureTarget=2);
+            env = iam.IAMEnvironment(conn);
+
+            normalized = struct(PolicyStatus="Implemented", TemperatureTarget=1.5);
+            original = struct("Temperature Target", 1.5, "Policy Status", "Implemented");
+
+            tc.verifyEqual(env.filterRuns(metadata=normalized, strict=true), 1001)
+            tc.verifyEqual(env.filterRuns(metadata=original, strict=true), 1001)
+        end
+
+        function testMetadataNormalizationSupportsMixedAliases(tc)
+            conn = buildMockConnection();
+            conn.Runs.metadata = { ...
+                struct("policy status", "Implemented", "TEMPERATURE TARGET", 1.5); ...
+                struct("POLICYSTATUS", "Planned")};
+
+            env = iam.IAMEnvironment(conn);
+
+            tc.verifyEqual([env.RunList.metadata.PolicyStatus]', ["Implemented"; "Planned"])
+            tc.verifyEqual(env.RunList.metadata(1).TemperatureTarget, 1.5)
+            tc.verifyTrue(isnan(env.RunList.metadata(2).TemperatureTarget))
+        end
+
+        function testMetadataNormalizationRejectsUnknownField(tc)
+            conn = buildMockConnection();
+            conn.Runs.metadata{2} = struct(UnknownField="value");
+
+            tc.verifyError(@() iam.IAMEnvironment(conn), ...
+                "IIASAEnvironment:resolveMetadataFieldName:UnknownMetadataField")
+        end
+
         function testEmptyDiscoverySkipsDefaultTimeseriesRequest(tc)
             conn = MockIAMConnection('BulkDataResponse', buildMockTimeseries());
             env = iam.IAMEnvironment(conn);
@@ -238,6 +271,33 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             tc.verifyEqual(tb.run_id, 1001)
         end
 
+        function testRunDiscoveryCombinesAllFilters(tc)
+            env = iam.IAMEnvironment(buildMockConnection());
+            filters = struct(strict=true, models="Model A", scenarios="Scenario A", ...
+                runs=[1001; 1002], metadata=struct(PolicyStatus="Implemented", TemperatureTarget=1.5));
+            args = namedargs2cell(filters);
+
+            runIds = env.filterRuns(args{:});
+            identities = env.index(args{:});
+            metadata = env.meta(args{:}, run_id=true);
+            properties = env.runProperties(args{:});
+
+            tc.verifyEqual(runIds, 1001)
+            tc.verifyEqual(identities.scenario, "Scenario A")
+            tc.verifyEqual(metadata.run_id, runIds)
+            tc.verifyEqual(properties.run_id, runIds)
+        end
+
+        function testRunDiscoveryRejectsUnknownMetadata(tc)
+            env = iam.IAMEnvironment(buildMockConnection());
+            filters = struct(UnknownField="value");
+            errorId = "IIASAEnvironment:checkValidMetadata:InvalidMetadataFields";
+
+            tc.verifyError(@() env.index(metadata=filters), errorId)
+            tc.verifyError(@() env.meta(metadata=filters), errorId)
+            tc.verifyError(@() env.runProperties(metadata=filters), errorId)
+        end
+
         function testGetFrameCanProjectMetadata(tc)
             conn = buildMockConnection();
             conn.BulkDataResponse = buildMockTimeseries();
@@ -275,6 +335,13 @@ classdef tIAMEnvironment < matlab.unittest.TestCase
             regions = sort(env.filterRegions(["Wor*", "Eur*"], true));
 
             tc.verifyEqual(regions, ["Europe"; "World"])
+        end
+
+        function testEmptySelectionsReturnAllVariableAndRegionNames(tc)
+            env = iam.IAMEnvironment(buildMockConnection());
+
+            tc.verifyEqual(env.filterVariables(), env.Variables.Name)
+            tc.verifyEqual(env.filterRegions(), env.Regions.Name)
         end
     end
 end

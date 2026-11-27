@@ -136,6 +136,8 @@ classdef IIASAconnection < iam.data.Connection
             addParameter(p, 'years', [], yearFunc)
             addParameter(p, 'units', '', func)
             addParameter(p, 'timeslices', '', func)
+            addParameter(p, 'progressMonitorFcn', [], ...
+                @(x) isempty(x) || isa(x, 'function_handle'))
             
             parse(p, varargin{:});
             
@@ -151,45 +153,45 @@ classdef IIASAconnection < iam.data.Connection
             
             input = "{""filters"": {""variables"": " + variable + ", ""runs"": [" + runNum + "], ""regions"":" + region + ", ""years"":" + years + ", ""units"": " + units + ", ""timeslices"": " + timeslices + "}}";
             
-            response = obj.postRequest(Url, input);
+            response = obj.postRequest(Url, input, p.Results.progressMonitorFcn);
             
             data = struct.empty();
             if ~isempty(response)
                 tb = struct2table(response);
                 
-                vars = {'runId', 'model', 'scenario', 'variable', 'region', 'unit'};
-                
+                % Compare columns once instead of slicing tables per observation.
+                newSeries = tb.runId(1:end-1) ~= tb.runId(2:end);
+                for name = ["model", "scenario", "variable", "region", "unit"]
+                    newSeries = newSeries | ...
+                        ~strcmp(tb.(name)(1:end-1), tb.(name)(2:end));
+                end
+                stops = find([newSeries; true]);
+
                 current = 1;
-                num = 1;
                 data = struct([]);
                 
-                for i = 1 : height(tb)
-                    
-                    if i == height(tb) || ~isequal(tb(i, vars), tb(i+1, vars))
-                        
-                        data(num).model = string(tb.model{i});
-                        data(num).scenario = string(tb.scenario{i});
-                        data(num).variable = string(tb.variable{i});
-                        data(num).region = string(tb.region{i});
-                        data(num).unit = string(tb.unit{i});
-                        data(num).runId = string(tb.runId(i));
-                        data(num).version = string(tb.version(i));
-                        data(num).years = tb.year(current:i);
-                        
-                        if strlength(data(num).variable) >= 60
-                            varName = extractBetween(data(num).variable,1, 59);
-                        else
-                            varName = data(num).variable;
-                        end
-                        
-                        data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
-                            'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', varName);
-                        
-                        num = num + 1;
-                        current = i + 1;
-                        
+                for num = 1:numel(stops)
+                    i = stops(num);
+
+                    data(num).model = string(tb.model{i});
+                    data(num).scenario = string(tb.scenario{i});
+                    data(num).variable = string(tb.variable{i});
+                    data(num).region = string(tb.region{i});
+                    data(num).unit = string(tb.unit{i});
+                    data(num).runId = string(tb.runId(i));
+                    data(num).version = string(tb.version(i));
+                    data(num).years = tb.year(current:i);
+
+                    if strlength(data(num).variable) >= 60
+                        varName = extractBetween(data(num).variable,1, 59);
+                    else
+                        varName = data(num).variable;
                     end
-                    
+
+                    data(num).values = timetable(datetime(tb.year(current:i),1,1,'Format', 'yyyy'), tb.value(current:i), ...
+                        'DimensionNames', {'Year', 'VariableUnits'}, 'VariableNames', varName);
+
+                    current = i + 1;
                 end
             end
             
@@ -206,6 +208,11 @@ classdef IIASAconnection < iam.data.Connection
                 
             end
             
+        end
+
+        function data = getBulkDataWithProgressMonitor(obj, progressMonitorFcn, varargin)
+            data = obj.getBulkData(varargin{:}, ...
+                'progressMonitorFcn', progressMonitorFcn);
         end
         
         function response = getAllModels(obj)
@@ -520,7 +527,10 @@ classdef IIASAconnection < iam.data.Connection
             
         end
         
-        function response = postRequest(obj, url, input)
+        function response = postRequest(obj, url, input, progressMonitorFcn)
+            if nargin < 4
+                progressMonitorFcn = [];
+            end
             
             import matlab.net.*;
             import matlab.net.http.*;
@@ -537,7 +547,20 @@ classdef IIASAconnection < iam.data.Connection
             rm = RequestMessage('post', [hf1, hf2, hf3]);
             rm.Body = mb;
             
-            rsp = rm.send(url, obj.ConnectionProperties);
+            requestOptions = obj.ConnectionProperties;
+            if ~isempty(progressMonitorFcn)
+                requestOptions.ProgressMonitorFcn = progressMonitorFcn;
+                requestOptions.UseProgressMonitor = true;
+            end
+            deferConversion = ~isempty(progressMonitorFcn) && requestOptions.ConvertResponse;
+            if deferConversion
+                % End transfer progress before the response is converted to data.
+                requestOptions.ConvertResponse = false;
+            end
+            rsp = rm.send(url, requestOptions);
+            if deferConversion
+                rsp = rsp.complete();
+            end
             
             if rsp.StatusCode == "OK"
                 response = rsp.Body.Data;
@@ -545,7 +568,7 @@ classdef IIASAconnection < iam.data.Connection
             elseif rsp.StatusCode == "Unauthorized" && isfield(rsp.Body.Data, 'errorCode') && rsp.Body.Data.errorCode == "TOKEN_EXPIRED"
 
                 obj.refreshToken()
-                response = obj.postRequest(url, input);
+                response = obj.postRequest(url, input, progressMonitorFcn);
                 
             else
                 error('IIASAConnection:InvalidResponse', string(rsp.StartLine) + rsp.Body.Data)
